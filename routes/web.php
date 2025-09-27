@@ -9,9 +9,17 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+// Test route
+Route::get('/test', function () {
+    return view('test');
+});
+
 
 // Login
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::get('/login-simple', function () {
+    return view('auth.login-simple');
+});
 Route::post('/login', [AuthController::class, 'login'])->name('login.perform');
 
 // Register
