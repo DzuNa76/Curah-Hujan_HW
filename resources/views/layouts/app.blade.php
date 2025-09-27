@@ -15,11 +15,11 @@
 <body>
   <div class="container-scroller">
     <!-- Sidebar -->
-    @include('partials.sidebar')
+    @include('layouts.partials.sidebar')
 
     <div class="container-fluid page-body-wrapper">
       <!-- Navbar -->
-      @include('partials.navbar')
+      @include('layouts.partials.navbar')
 
       <div class="main-panel">
         <div class="content-wrapper">
@@ -27,7 +27,7 @@
         </div>
 
         <!-- Footer -->
-        @include('partials.footer')
+        @include('layouts.partials.footer')
       </div>
     </div>
   </div>

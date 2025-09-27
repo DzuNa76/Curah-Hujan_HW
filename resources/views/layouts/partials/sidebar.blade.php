@@ -14,5 +14,5 @@
       </li>
       <!-- Tambahkan menu lain sesuai kebutuhan -->
     </ul>
-  </nav>
+</nav>
   
