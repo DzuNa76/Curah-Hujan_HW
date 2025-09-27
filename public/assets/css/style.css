@@ -8862,8 +8862,8 @@ pre {
   .jsgrid .jsgrid-table .jsgrid-filter-row select:focus, .jsgrid .jsgrid-table .jsgrid-filter-row input:focus[type=number], .select2-container--default .select2-selection--single:focus, .select2-container--default .select2-selection--single .select2-search__field:focus, .typeahead:focus,
   .tt-query:focus,
   .tt-hint:focus {
-    color: #495057;
-    background-color: #fff;
+    color: #ffffff;
+    background-color: #2A3038;
     border-color: #80bdff;
     outline: 0;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); }
@@ -20249,6 +20249,111 @@ div.tagsinput {
   background: #ffffff; }
   .auth .auth-form-light select {
     color: #4b5564; }
+  
+  /* Custom styling for p_input class */
+  .p_input {
+    background-color: rgba(42, 48, 56, 0.8) !important;
+    border: 1px solid #495057 !important;
+    color: #ffffff !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  .p_input:focus {
+    background-color: #2A3038 !important;
+    border-color: #007bff !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+  }
+  
+  .p_input::placeholder {
+    color: #adb5bd !important;
+  }
+  
+  /* Styling for auth card */
+  .auth .card {
+    background-color: rgba(42, 48, 56, 0.9) !important;
+    border: 1px solid #495057 !important;
+    backdrop-filter: blur(10px) !important;
+  }
+  
+  .auth .card-body {
+    background-color: transparent !important;
+  }
+  
+  .auth .form-group label {
+    color: #ffffff !important;
+    font-weight: 500 !important;
+  }
+  
+  .auth a {
+    color: #007bff !important;
+    text-decoration: none !important;
+  }
+  
+  .auth a:hover {
+    color: #0056b3 !important;
+    text-decoration: underline !important;
+  }
+  
+  .auth .form-check-label {
+    color: #ffffff !important;
+  }
+  
+  /* Styling for date input and calendar icon */
+  input[type="date"""], input[type="month"] {
+    background-color: #2A3038 !important;
+    border: 1px solid #495057 !important;
+    color: #ffffff !important;
+    padding: 0.56rem 0.81rem !important;
+    border-radius: 0.2rem !important;
+  }
+  
+  input[type="date"]:focus, input[type="month"]:focus {
+    background-color: #2A3038 !important;
+    border-color: #007bff !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+  }
+  
+  /* Calendar icon styling */
+  input[type="date"]::-webkit-calendar-picker-indicator, input[type="month"]::-webkit-calendar-picker-indicator {
+    background-color: #ffffff !important;
+    color: #ffffff !important;
+    cursor: pointer !important;
+    border-radius: 3px !important;
+    padding: 2px !important;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator:hover, input[type="month"]::-webkit-calendar-picker-indicator:hover {
+    background-color: #007bff !important;
+  }
+  
+  /* Firefox calendar icon */
+  input[type="date"]::-moz-calendar-picker-indicator, input[type="month"]::-moz-calendar-picker-indicator {
+    background-color: #ffffff !important;
+    color: #ffffff !important;
+    cursor: pointer !important;
+    border-radius: 3px !important;
+    padding: 2px !important;
+  }
+  
+  input[type="date"]::-moz-calendar-picker-indicator:hover, input[type="month"]::-moz-calendar-picker-indicator:hover {
+    background-color: #007bff !important;
+  }
+  
+  /* Styling for number input */
+  input[type="number"], input[type="month"] {
+    background-color: #2A3038 !important;
+    border: 1px solid #495057 !important;
+    color: #ffffff !important;
+  }
+  
+  input[type="number"]:focus, input[type="month"]:focus {
+    background-color: #2A3038 !important;
+    border-color: #007bff !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+  }
   .auth .auth-form-light .input-group .form-control:focus, .auth .auth-form-light .asColorPicker-wrap .form-control:focus, .auth .auth-form-light .input-group .asColorPicker-input:focus, .auth .auth-form-light .asColorPicker-wrap .asColorPicker-input:focus, .auth .auth-form-light .input-group .dataTables_wrapper select:focus, .dataTables_wrapper .auth .auth-form-light .input-group select:focus, .auth .auth-form-light .asColorPicker-wrap .dataTables_wrapper select:focus, .dataTables_wrapper .auth .auth-form-light .asColorPicker-wrap select:focus, .auth .auth-form-light .input-group .jsgrid .jsgrid-table .jsgrid-filter-row input:focus[type=text], .jsgrid .jsgrid-table .jsgrid-filter-row .auth .auth-form-light .input-group input:focus[type=text], .auth .auth-form-light .asColorPicker-wrap .jsgrid .jsgrid-table .jsgrid-filter-row input:focus[type=text], .jsgrid .jsgrid-table .jsgrid-filter-row .auth .auth-form-light .asColorPicker-wrap input:focus[type=text],
   .auth .auth-form-light .input-group .jsgrid .jsgrid-table .jsgrid-filter-row select:focus, .jsgrid .jsgrid-table .jsgrid-filter-row .auth .auth-form-light .input-group select:focus,
   .auth .auth-form-light .asColorPicker-wrap .jsgrid .jsgrid-table .jsgrid-filter-row select:focus, .jsgrid .jsgrid-table .jsgrid-filter-row .auth .auth-form-light .asColorPicker-wrap select:focus, .auth .auth-form-light .input-group .jsgrid .jsgrid-table .jsgrid-filter-row input:focus[type=number], .jsgrid .jsgrid-table .jsgrid-filter-row .auth .auth-form-light .input-group input:focus[type=number], .auth .auth-form-light .asColorPicker-wrap .jsgrid .jsgrid-table .jsgrid-filter-row input:focus[type=number], .jsgrid .jsgrid-table .jsgrid-filter-row .auth .auth-form-light .asColorPicker-wrap input:focus[type=number], .auth .auth-form-light .input-group .select2-container--default .select2-selection--single:focus, .select2-container--default .auth .auth-form-light .input-group .select2-selection--single:focus, .auth .auth-form-light .asColorPicker-wrap .select2-container--default .select2-selection--single:focus, .select2-container--default .auth .auth-form-light .asColorPicker-wrap .select2-selection--single:focus, .auth .auth-form-light .input-group .select2-container--default .select2-selection--single .select2-search__field:focus, .select2-container--default .select2-selection--single .auth .auth-form-light .input-group .select2-search__field:focus, .auth .auth-form-light .asColorPicker-wrap .select2-container--default .select2-selection--single .select2-search__field:focus, .select2-container--default .select2-selection--single .auth .auth-form-light .asColorPicker-wrap .select2-search__field:focus, .auth .auth-form-light .input-group .typeahead:focus, .auth .auth-form-light .asColorPicker-wrap .typeahead:focus,

@@ -4,64 +4,76 @@ namespace App\Http\Controllers;
 
 use App\Models\RainfallData;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class RainfallDataController extends Controller
 {
-    // ✅ Tampilkan semua data
     public function index()
     {
-        $data = RainfallData::orderBy('date', 'desc')->get();
-        return view('data.index', compact('data')); 
+        $rainfallData = RainfallData::all();
+        return view('data.index', compact('rainfallData'));
     }
 
-    // ✅ Form input data baru
     public function create()
     {
-        return view('data.create'); 
+        return view('data.create');
     }
 
-    // ✅ Simpan data baru
     public function store(Request $request)
     {
         $request->validate([
-            'date' => 'required|date',
+            'monthYear' => 'required|date_format:Y-m',
             'rainfall_amount' => 'required|numeric',
             'rain_days' => 'required|integer',
         ]);
 
-        RainfallData::create($request->all());
+        // konversi input monthYear jadi format Des-2024
+        $date = Carbon::createFromFormat('Y-m', $request->monthYear);
+        $id = $date->translatedFormat('M-Y'); // Des-2024
 
-        return redirect()->route('rainfall.index')->with('success', 'Data curah hujan berhasil ditambahkan');
+        RainfallData::create([
+            'id' => $id,
+            'date' => $date->startOfMonth(), // simpan tanggal awal bulan
+            'rainfall_amount' => $request->rainfall_amount,
+            'rain_days' => $request->rain_days,
+        ]);
+
+        return redirect()->route('rainfall.index')->with('success', 'Data berhasil ditambahkan!');
     }
 
-    // ✅ Form edit data
     public function edit($id)
     {
         $rainfall = RainfallData::findOrFail($id);
-        return view('data.edit', compact('rainfall')); 
+        return view('data.edit', compact('rainfall'));
     }
 
-    // ✅ Update data
     public function update(Request $request, $id)
     {
         $request->validate([
-            'date' => 'required|date',
+            'monthYear' => 'required|date_format:Y-m',
             'rainfall_amount' => 'required|numeric',
             'rain_days' => 'required|integer',
         ]);
 
-        $rainfall = RainfallData::findOrFail($id);
-        $rainfall->update($request->all());
+        $date = Carbon::createFromFormat('Y-m', $request->monthYear);
+        $newId = $date->translatedFormat('M-Y');
 
-        return redirect()->route('rainfall.index')->with('success', 'Data curah hujan berhasil diperbarui');
+        $rainfall = RainfallData::findOrFail($id);
+        $rainfall->update([
+            'id' => $newId,
+            'date' => $date->startOfMonth(),
+            'rainfall_amount' => $request->rainfall_amount,
+            'rain_days' => $request->rain_days,
+        ]);
+
+        return redirect()->route('rainfall.index')->with('success', 'Data berhasil diperbarui!');
     }
 
-    // ✅ Hapus data
     public function destroy($id)
     {
         $rainfall = RainfallData::findOrFail($id);
         $rainfall->delete();
 
-        return redirect()->route('rainfall.index')->with('success', 'Data curah hujan berhasil dihapus');
+        return redirect()->route('rainfall.index')->with('success', 'Data berhasil dihapus!');
     }
 }

@@ -9,9 +9,7 @@
             <div class="card-body">
                 <h4 class="card-title d-flex justify-content-between align-items-center">
                     <span>Data Curah Hujan</span>
-                    <a href="{{ route('rainfall.create') }}" class="btn btn-sm btn-primary">
-                        <i class="mdi mdi-plus"></i> Tambah Data
-                    </a>
+                    <a href="{{ route('rainfall.create') }}" class="btn btn-primary">Tambah Data</a>
                 </h4>
 
                 <!-- Pesan sukses -->
@@ -29,29 +27,25 @@
                         <thead class="thead-dark">
                             <tr>
                                 <th>No</th>
-                                <th>Tanggal</th>
+                                <th>Bulan-Tahun</th>
                                 <th>Curah Hujan (mm)</th>
                                 <th>Hari Hujan</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse ($data as $item)
+                            @forelse($rainfallData as $data)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($item->date)->format('d M Y') }}</td>
-                                    <td>{{ $item->rainfall_amount }}</td>
-                                    <td>{{ $item->rain_days }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($data->month_year)->translatedFormat('F Y') }}</td>
+                                    <td>{{ $data->rainfall_amount }}</td>
+                                    <td>{{ $data->rain_days }}</td>
                                     <td>
-                                        <a href="{{ route('rainfall.edit', $item->id) }}" class="btn btn-sm btn-warning">
-                                            <i class="mdi mdi-pencil"></i> Edit
-                                        </a>
-                                        <form action="{{ route('rainfall.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin hapus data ini?')">
+                                        <a href="{{ route('rainfall.edit', $data->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                        <form action="{{ route('rainfall.destroy', $data->id) }}" method="POST" style="display:inline-block;">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                <i class="mdi mdi-delete"></i> Hapus
-                                            </button>
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Hapus data ini?')">Hapus</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -60,7 +54,7 @@
                                     <td colspan="5" class="text-center">Belum ada data curah hujan</td>
                                 </tr>
                             @endforelse
-                        </tbody>
+                        </tbody>                        
                     </table>
                 </div>
 
