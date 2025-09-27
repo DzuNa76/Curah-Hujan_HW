@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\RainfallDataController;
 
 // Beranda -> redirect ke login
 Route::get('/', function () {
@@ -37,3 +38,6 @@ Route::get('/forgot-password', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
+
+// Data Peramalan
+Route::resource('rainfall', RainfallDataController::class);

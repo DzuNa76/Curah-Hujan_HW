@@ -1,8 +1,8 @@
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
     <!-- isi sidebar -->
     <div class="sidebar-brand-wrapper d-none d-lg-flex align-items-center justify-content-center fixed-top">
-      <a class="sidebar-brand brand-logo" href="{{ url('/') }}"><img src="{{ asset('assets/images/logo.svg') }}" alt="logo" /></a>
-      <a class="sidebar-brand brand-logo-mini" href="{{ url('/') }}"><img src="{{ asset('assets/images/logo-mini.svg') }}" alt="logo" /></a>
+      <a class="sidebar-brand brand-logo" style="color: white;" href="{{ url('/dashboard') }}">Peramalan Hujan</a>
+      <a class="sidebar-brand brand-logo-mini" style="color: white;" href="{{ url('/dashboard') }}">PH</a>
     </div>
     <ul class="nav">
       <li class="nav-item nav-category"><span class="nav-link">Navigation</span></li>
@@ -12,7 +12,31 @@
           <span class="menu-title">Dashboard</span>
         </a>
       </li>
-      <!-- Tambahkan menu lain sesuai kebutuhan -->
+      {{-- Data Peramalan --}}
+      <li class="nav-item menu-items">
+        <a class="nav-link" href="{{ url('/rainfall') }}">
+          <span class="menu-icon"><i class="mdi mdi-chart-bar"></i></span>
+          <span class="menu-title">Data Peramalan</span>
+        </a>
+      </li>
+      <li class="nav-item nav-category"><span class="nav-link"></span></li>
+      {{-- Proses Peramalan --}}
+      <li class="nav-item menu-items">
+        <a class="nav-link" href="{{ url('/proses-peramalan') }}">
+          <span class="menu-icon"><i class="mdi mdi-chart-bar"></i></span>
+          <span class="menu-title">Proses Peramalan</span>
+        </a>
+      </li>
+      <li class="nav-item nav-category"><span class="nav-link"></span></li>
+      {{-- Pengaturan profil (hanya admin)--}}
+      @if (Auth::user()->role == 'admin')
+      <li class="nav-item menu-items">
+        <a class="nav-link" href="{{ url('/pengaturan-profil-admin') }}">
+          <span class="menu-icon"><i class="mdi mdi-settings"></i></span>
+          <span class="menu-title">Pengaturan Profil Admin</span>
+        </a>
+      </li>
+      @endif
     </ul>
 </nav>
   
