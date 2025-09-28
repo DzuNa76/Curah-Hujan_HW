@@ -31,9 +31,9 @@
       {{-- Pengaturan profil (hanya admin)--}}
       @if (Auth::user()->role == 'admin')
       <li class="nav-item menu-items">
-        <a class="nav-link" href="{{ url('/pengaturan-profil-admin') }}">
-          <span class="menu-icon"><i class="mdi mdi-settings"></i></span>
-          <span class="menu-title">Pengaturan Profil Admin</span>
+        <a class="nav-link" href="{{ url('') }}">
+          <span class="menu-icon"><i class="mdi mdi-account-group"></i></span>
+          <span class="menu-title">Pengaturan User</span>
         </a>
       </li>
       @endif

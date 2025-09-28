@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RainfallDataController;
+use App\Http\Controllers\UserController;
 
 // Beranda -> redirect ke login
 Route::get('/', function () {
@@ -41,3 +42,8 @@ Route::middleware('auth')->group(function () {
 
 // Data Peramalan
 Route::resource('rainfall', RainfallDataController::class);
+
+// Pengaturan User
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::resource('users', UserController::class);
+});
