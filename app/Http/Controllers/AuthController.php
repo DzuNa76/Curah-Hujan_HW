@@ -28,9 +28,19 @@ class AuthController extends Controller
             return redirect()->intended('/dashboard')->with('success', 'Login berhasil!');
         }
 
-        return back()->withErrors([
-            'email' => 'Email atau password salah.',    
-        ])->onlyInput('email');
+        if (!Auth::attempt($request->only('email', 'password'))) {
+            // Cek apakah email ada di database
+            if (!User::where('email', $request->email)->exists()) {
+                return back()->withErrors([
+                    'email' => 'Email tidak ditemukan.',
+                ])->withInput();
+            }
+    
+            // Jika email ada tapi password salah
+            return back()->withErrors([
+                'password' => 'Password salah.',
+            ])->withInput();
+        }
     }
 
     // Logout

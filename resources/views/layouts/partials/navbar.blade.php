@@ -27,14 +27,20 @@
           </a>
           <div class="dropdown-divider"></div>
           <a class="dropdown-item preview-item">
-            <div class="preview-thumbnail">
-              <div class="preview-icon bg-dark rounded-circle">
-                <i class="mdi mdi-logout text-danger"></i>
-              </div>
-            </div>
-            <div class="preview-item-content">
-              <p class="preview-subject mb-1">Log out</p>
-            </div>
+            <!-- langsung form POST, tombol di-style supaya terlihat seperti item dropdown -->
+          <form method="POST" action="{{ route('logout') }}" style="display:inline;">
+            @csrf
+            <button type="submit" class="dropdown-item preview-item" style="border: none; background: transparent; padding: 0; width:100%; text-align:left;">
+                <div class="preview-thumbnail">
+                    <div class="preview-icon bg-dark rounded-circle">
+                        <i class="mdi mdi-logout text-danger"></i>
+                    </div>
+                </div>
+                <div class="preview-item-content">
+                    <p class="preview-subject mb-1">Log out</p>
+                </div>
+            </button>
+          </form>
           </a>
         </div>
       </li>
