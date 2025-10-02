@@ -22,8 +22,8 @@
                     </div>
                 @endif
 
-                <div class="table-bordered">
-                    <table class="table table-hover">
+                <div class="table-responsive">
+                    <table id="rainfallTable" class="table table-bordered table-striped">
                         <thead class="thead-dark">
                             <tr>
                                 <th>No</th>
@@ -34,7 +34,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($rainfallData as $data)
+                            @foreach($rainfallData as $data)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ \Carbon\Carbon::parse($data->month_year)->translatedFormat('F Y') }}</td>
@@ -49,11 +49,7 @@
                                         </form>
                                     </td>
                                 </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="text-center">Belum ada data curah hujan</td>
-                                </tr>
-                            @endforelse
+                            @endforeach
                         </tbody>                        
                     </table>
                 </div>
@@ -63,3 +59,20 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function(){
+        // jika ingin auto-close setelah 10 detik:
+        const alertEl = document.querySelector('.alert');
+        if(alertEl){
+            setTimeout(function(){
+                // bootstrap 5: remove element gracefully
+                alertEl.classList.remove('show');
+                alertEl.classList.add('hide');
+                // atau $(alertEl).alert('close'); jika jQuery + bootstrap
+            }, 3000);
+        }
+    });
+</script>    
+@endpush
