@@ -14,9 +14,7 @@
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">Tabel Data Curah Hujan</h6>
-            <a href="{{ route('rainfall.create') }}" class="btn btn-sm btn-primary">
-                <i class="fas fa-plus-circle"></i> Tambah Data
-            </a>
+            <a href="{{ route('rainfall.create') }}" class="btn btn-sm btn-primary">Tambah Data</a>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -35,18 +33,18 @@
                         <tr>
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ \Carbon\Carbon::parse($data->month_year)->translatedFormat('F Y') }}</td>
-                            <td>{{ number_format($data->rainfall_amount, 2) }}</td>
+                            <td>{{ number_format($data->rainfall_amount, 1) }}</td>
                             <td>{{ $data->rain_days }}</td>
                             <td class="text-center">
                                 <a href="{{ route('rainfall.edit', $data->id) }}" class="btn btn-warning btn-sm" title="Edit">
-                                    <i class="fas fa-edit"></i>
+                                    <i class="fas fa-edit"></i> Edit
                                 </a>
                                 <form action="{{ route('rainfall.destroy', $data->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-danger btn-sm" 
                                             onclick="return confirm('Hapus data ini?')" title="Hapus">
-                                        <i class="fas fa-trash"></i>
+                                        <i class="fas fa-trash"></i> Hapus
                                     </button>
                                 </form>
                             </td>
