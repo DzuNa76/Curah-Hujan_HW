@@ -1,59 +1,56 @@
-<nav class="navbar p-0 fixed-top d-flex flex-row">
-  <div class="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center">
-    <a class="navbar-brand brand-logo-mini" href="{{ url('/dashboard') }}">
-      <img src="assets/images/logo-mini.svg" alt="logo" />
-    </a>
-  </div>
-  <div class="navbar-menu-wrapper flex-grow d-flex align-items-stretch">
-    <button class="navbar-toggler navbar-toggler align-self-center" type="button" data-toggle="minimize">
-      <span class="mdi mdi-menu"></span>
-    </button>
+<!-- Topbar -->
+<nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
 
-    <!-- tambahkan ml-auto agar selalu di kanan -->
-    <ul class="navbar-nav ml-auto navbar-nav-right">
-      <li class="nav-item dropdown">
-        <a class="nav-link" id="profileDropdown" href="#" data-toggle="dropdown" aria-expanded="false">
-          <div class="navbar-profile">
-            <p class="mb-0 d-none d-sm-block navbar-profile-name">Henry Klein</p>
-            <i class="mdi mdi-menu-down d-none d-sm-block"></i>
+  <!-- Sidebar Toggle (Topbar) -->
+  <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+      <i class="fa fa-bars"></i>
+  </button>
+
+  <!-- Topbar Search -->
+  {{-- <form class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
+      <div class="input-group">
+          <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."
+              aria-label="Search" aria-describedby="basic-addon2">
+          <div class="input-group-append">
+              <button class="btn btn-primary" type="button">
+                  <i class="fas fa-search fa-sm"></i>
+              </button>
           </div>
-        </a>
-        <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="profileDropdown">
-          
-          <!-- Profile item -->
-          <a class="dropdown-item preview-item" href="#">
-            <div class="preview-thumbnail">
-              <div class="preview-icon bg-dark rounded-circle">
-                <i class="mdi mdi-account text-success"></i>
-              </div>
-            </div>
-            <div class="preview-item-content">
-              <p class="preview-subject mb-1">Profile</p>
-            </div>
+      </div>
+  </form> --}}
+
+  <!-- Topbar Navbar -->
+  <ul class="navbar-nav ml-auto">
+
+      <div class="topbar-divider d-none d-sm-block"></div>
+
+      <!-- Nav Item - User Information -->
+      <li class="nav-item dropdown no-arrow">
+          <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+              data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <span class="mr-2 d-none d-lg-inline text-gray-600 small">{{ Auth::user()->name ?? 'Guest' }}</span>
+              {{-- <img class="img-profile rounded-circle" src="{{ asset('img/undraw_profile.svg') }}"> --}}
           </a>
-
-          <div class="dropdown-divider"></div>
-
-          <!-- Logout form langsung, tidak di dalam <a> -->
-          <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="dropdown-item preview-item" style="border: none; background: transparent;">
-              <div class="preview-thumbnail">
-                <div class="preview-icon bg-dark rounded-circle">
-                  <i class="mdi mdi-logout text-danger"></i>
-                </div>
-              </div>
-              <div class="preview-item-content">
-                <p class="preview-subject mb-1">Log out</p>
-              </div>
-            </button>
-          </form>
-        </div>
+          <!-- Dropdown - User Information -->
+          <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+              aria-labelledby="userDropdown">
+              <a class="dropdown-item" href="#">
+                  <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
+                  Profile
+              </a>
+              <a class="dropdown-item" href="#">
+                  <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
+                  Settings
+              </a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
+                  <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                  Logout
+              </a>
+          </div>
       </li>
-    </ul>
 
-    <button class="navbar-toggler navbar-toggler-right d-lg-none align-self-center" type="button" data-toggle="offcanvas">
-      <span class="mdi mdi-format-line-spacing"></span>
-    </button>
-  </div>
+  </ul>
+
 </nav>
+<!-- End of Topbar -->

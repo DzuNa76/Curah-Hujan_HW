@@ -1,42 +1,53 @@
-<nav class="sidebar sidebar-offcanvas" id="sidebar">
-    <!-- isi sidebar -->
-    <div class="sidebar-brand-wrapper d-none d-lg-flex align-items-center justify-content-center fixed-top">
-      <a class="sidebar-brand brand-logo" style="color: white;" href="{{ url('/dashboard') }}">Peramalan Hujan</a>
-      <a class="sidebar-brand brand-logo-mini" style="color: white;" href="{{ url('/dashboard') }}">PH</a>
-    </div>
-    <ul class="nav">
-      <li class="nav-item nav-category"><span class="nav-link">Navigation</span></li>
-      <li class="nav-item menu-items">
-        <a class="nav-link" href="{{ url('/dashboard') }}">
-          <span class="menu-icon"><i class="mdi mdi-speedometer"></i></span>
-          <span class="menu-title">Dashboard</span>
-        </a>
-      </li>
-      {{-- Data Peramalan --}}
-      <li class="nav-item menu-items">
-        <a class="nav-link" href="{{ url('/rainfall') }}">
-          <span class="menu-icon"><i class="mdi mdi-chart-bar"></i></span>
-          <span class="menu-title">Data Peramalan</span>
-        </a>
-      </li>
-      <li class="nav-item nav-category"><span class="nav-link"></span></li>
-      {{-- Proses Peramalan --}}
-      <li class="nav-item menu-items">
-        <a class="nav-link" href="{{ url('/proses-peramalan') }}">
-          <span class="menu-icon"><i class="mdi mdi-chart-bar"></i></span>
-          <span class="menu-title">Proses Peramalan</span>
-        </a>
-      </li>
-      <li class="nav-item nav-category"><span class="nav-link"></span></li>
-      {{-- Pengaturan profil (hanya admin)--}}
-      @if (Auth::user()->role == 'admin')
-      <li class="nav-item menu-items">
-        <a class="nav-link" href="{{ url('') }}">
-          <span class="menu-icon"><i class="mdi mdi-account-group"></i></span>
-          <span class="menu-title">Pengaturan User</span>
-        </a>
-      </li>
-      @endif
-    </ul>
-</nav>
-  
+<!-- Sidebar -->
+<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+
+  <!-- Sidebar - Brand -->
+  <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ url('/') }}">
+      <div class="sidebar-brand-icon rotate-n-15">
+          <i class="fas fa-laugh-wink"></i>
+      </div>
+      <div class="sidebar-brand-text mx-3">SB Admin <sup>2</sup></div>
+  </a>
+
+  <!-- Divider -->
+  <hr class="sidebar-divider my-0">
+
+  <!-- Nav Item - Dashboard -->
+  <li class="nav-item {{ request()->is('dashboard') ? 'active' : '' }}">
+      <a class="nav-link" href="{{ url('dashboard') }}">
+          <i class="fas fa-fw fa-tachometer-alt"></i>
+          <span>Dashboard</span></a>
+  </li>
+
+  <!-- Divider -->
+  <hr class="sidebar-divider">
+
+  <!-- Heading -->
+  <div class="sidebar-heading">Interface</div>
+
+  <!-- Example Nav Item -->
+  <li class="nav-item">
+      <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
+          aria-expanded="true" aria-controls="collapseTwo">
+          <i class="fas fa-fw fa-cog"></i>
+          <span>Components</span>
+      </a>
+      <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+          <div class="bg-white py-2 collapse-inner rounded">
+              <h6 class="collapse-header">Custom Components:</h6>
+              <a class="collapse-item" href="#">Buttons</a>
+              <a class="collapse-item" href="#">Cards</a>
+          </div>
+      </div>
+  </li>
+
+  <!-- Divider -->
+  <hr class="sidebar-divider d-none d-md-block">
+
+  <!-- Sidebar Toggler -->
+  <div class="text-center d-none d-md-inline">
+      <button class="rounded-circle border-0" id="sidebarToggle"></button>
+  </div>
+
+</ul>
+<!-- End of Sidebar -->

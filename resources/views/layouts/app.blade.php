@@ -1,64 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <title>@yield('title', 'Corona Admin')</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
 
-  <!-- plugins:css -->
-  <link rel="stylesheet" href="{{ asset('assets/vendors/mdi/css/materialdesignicons.min.css') }}">
-  <link rel="stylesheet" href="{{ asset('assets/vendors/css/vendor.bundle.base.css') }}">
-  <!-- Layout styles -->
-  <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
-  <link rel="shortcut icon" href="{{ asset('assets/images/favicon.png') }}" />
-  <!-- DataTables CSS -->
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <title>@yield('title', 'Dashboard')</title>
 
-  <!-- Optional: Buttons (Export Excel/PDF/Print) -->
-  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+    <!-- Custom fonts for this template-->
+    <link href="{{ asset('assets/vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet">
+
+    <!-- Custom styles for this template-->
+    <link href="{{ asset('assets/css/sb-admin-2.min.css') }}" rel="stylesheet">
+    @stack('styles')
 </head>
-<body>
-  <div class="container-scroller">
-    <!-- Sidebar -->
-    @include('layouts.partials.sidebar')
 
-    <div class="container-fluid page-body-wrapper">
-      <!-- Navbar -->
-      @include('layouts.partials.navbar')
+<body id="page-top">
 
-      <div class="main-panel">
-        <div class="content-wrapper">
-          @yield('content')
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+
+        {{-- Sidebar --}}
+        @include('layouts.partials.sidebar')
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+
+            <!-- Main Content -->
+            <div id="content">
+
+                {{-- Navbar --}}
+                @include('layouts.partials.navbar')
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+                    @yield('content')
+                </div>
+                <!-- /.container-fluid -->
+
+            </div>
+            <!-- End of Main Content -->
+
+            {{-- Footer --}}
+            @include('layouts.partials.footer')
+
         </div>
+        <!-- End of Content Wrapper -->
 
-        <!-- Footer -->
-        @include('layouts.partials.footer')
-      </div>
     </div>
-  </div>
+    <!-- End of Page Wrapper -->
 
-  <!-- plugins:js -->
-  <script src="{{ asset('assets/vendors/js/vendor.bundle.base.js') }}"></script>
-  <script src="{{ asset('assets/js/off-canvas.js') }}"></script>
-  <script src="{{ asset('assets/js/hoverable-collapse.js') }}"></script>
-  <script src="{{ asset('assets/js/misc.js') }}"></script>
-  <script src="{{ asset('assets/js/settings.js') }}"></script>
-  <script src="{{ asset('assets/js/todolist.js') }}"></script>
-  <!-- jQuery (wajib untuk DataTables) -->
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
 
-  <!-- DataTables JS -->
-  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Logout Modal-->
+    <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Ready to Leave?</h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button class="btn btn-primary">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  {{-- <!-- Optional: Buttons (Excel/PDF/Print) -->
-  <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
-  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
-  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
-  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script> --}}
-  @stack('scripts')
+    <!-- Bootstrap core JavaScript-->
+    <script src="{{ asset('assets/vendor/jquery/jquery.min.js') }}"></script>
+    <script src="{{ asset('assets/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+    <!-- Core plugin JavaScript-->
+    <script src="{{ asset('assets/vendor/jquery-easing/jquery.easing.min.js') }}"></script>
+
+    <!-- Custom scripts for all pages-->
+    <script src="{{ asset('assets/js/sb-admin-2.min.js') }}"></script>
+
+    <!-- Page level plugins -->
+    <script src="{{ asset('assets/vendor/chart.js/Chart.min.js') }}"></script>
+
+    <!-- Page level custom scripts -->
+    <script src="{{ asset('assets/js/demo/chart-area-demo.js') }}"></script>
+    <script src="{{ asset('assets/js/demo/chart-pie-demo.js') }}"></script>
+
+    @stack('scripts')
 </body>
 </html>
