@@ -3,66 +3,60 @@
 @section('title', 'Data Curah Hujan')
 
 @section('content')
-<div class="row">
-    <!-- Card Deskripsi -->
-    <div class="col-md-12 grid-margin stretch-card">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="card-title">Data Curah Hujan</h4>
-                <p class="card-description">
-                    Halaman ini menampilkan data curah hujan bulanan beserta jumlah hari hujan.
-                    Anda dapat menambahkan data baru, mengedit, atau menghapus data yang sudah ada.
-                </p>
-                <a href="{{ route('rainfall.create') }}" class="btn btn-primary btn-sm">
-                    <i class="mdi mdi-plus-circle"></i> Tambah Data
-                </a>
-            </div>
-        </div>
-    </div>
+    <!-- Page Heading -->
+    <h1 class="h3 mb-2 text-gray-800">Data Curah Hujan</h1>
+    <p class="mb-4">
+        Halaman ini menampilkan data curah hujan bulanan beserta jumlah hari hujan.
+        Anda dapat menambahkan data baru, mengedit, atau menghapus data yang sudah ada.
+    </p>
 
-    <!-- Card Tabel -->
-    <div class="col-md-12 grid-margin stretch-card">
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table id="rainfallTable" class="table table-striped table-hover">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>No</th>
-                                <th>Bulan - Tahun</th>
-                                <th>Curah Hujan (mm)</th>
-                                <th>Hari Hujan</th>
-                                <th class="text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($rainfallData as $data)
-                            <tr>
-                                <td>{{ $loop->iteration }}</td>
-                                <td>{{ \Carbon\Carbon::parse($data->month_year)->translatedFormat('F Y') }}</td>
-                                <td>{{ number_format($data->rainfall_amount, 2) }}</td>
-                                <td>{{ $data->rain_days }}</td>
-                                <td class="text-center">
-                                    <a href="{{ route('rainfall.edit', $data->id) }}" class="btn btn-warning btn-sm"><i class="mdi mdi-pencil"></i> Edit
-                                    </a>
-                                    <form action="{{ route('rainfall.destroy', $data->id) }}" method="POST" style="display:inline-block;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm" 
-                                                onclick="return confirm('Hapus data ini?')">
-                                            <i class="mdi mdi-delete"></i> Hapus
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+    <!-- DataTables Example -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Tabel Data Curah Hujan</h6>
+            <a href="{{ route('rainfall.create') }}" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus-circle"></i> Tambah Data
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="rainfallTable" width="100%" cellspacing="0">
+                    <thead >
+                        <tr>
+                            <th>No</th>
+                            <th>Bulan - Tahun</th>
+                            <th>Curah Hujan (mm)</th>
+                            <th>Hari Hujan</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($rainfallData as $data)
+                        <tr>
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ \Carbon\Carbon::parse($data->month_year)->translatedFormat('F Y') }}</td>
+                            <td>{{ number_format($data->rainfall_amount, 2) }}</td>
+                            <td>{{ $data->rain_days }}</td>
+                            <td class="text-center">
+                                <a href="{{ route('rainfall.edit', $data->id) }}" class="btn btn-warning btn-sm" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form action="{{ route('rainfall.destroy', $data->id) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm" 
+                                            onclick="return confirm('Hapus data ini?')" title="Hapus">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-</div>
 @endsection
 
 @include('components.datatables')
