@@ -34,7 +34,7 @@
   </li>
 
   <!-- Example Nav Item -->
-  <li class="nav-item">
+  {{-- <li class="nav-item">
       <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
           aria-expanded="true" aria-controls="collapseTwo">
           <i class="fas fa-fw fa-cog"></i>
@@ -47,7 +47,22 @@
               <a class="collapse-item" href="#">Cards</a>
           </div>
       </div>
-  </li>
+  </li> --}}
+
+  {{-- data user / admin access --}}
+  @auth
+    @if(auth()->user()->role === 'admin')
+        <hr class="sidebar-divider">
+        <div class="sidebar-heading">Data Pengguna</div>
+        {{-- data user / admin access --}}
+        <li class="nav-item {{ request()->is('users') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ url('users') }}">
+                <i class="fas fa-fw fa-users"></i>
+                <span>Data User</span>
+            </a>
+        </li>
+    @endif
+  @endauth
 
   <!-- Divider -->
   <hr class="sidebar-divider d-none d-md-block">
