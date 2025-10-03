@@ -3,48 +3,53 @@
 @section('title', 'Login')
 
 @section('content')
-<div class="card col-lg-4 mx-auto">
-    <div class="card-body px-5 py-5">
-        <h3 class="card-title text-left mb-3">Login</h3>
-
-        <!-- Form Login -->
-        <form method="POST" action="{{ route('login.perform') }}">
-            @csrf
-
-            <div class="form-group">
-                <label>Email *</label>
-                <input type="email" name="email" class="form-control p_input" 
-                    value="{{ old('email') }}" required autofocus>
-                @error('email')
-                    <small class="text-danger">{{ $message }}</small>
-                @enderror
-            </div>
-
-            <div class="form-group">
-                <label>Password *</label>
-                <input type="password" name="password" class="form-control p_input" required>
-                @error('password')
-                    <small class="text-danger">{{ $message }}</small>
-                @enderror
-            </div>
-
-            <div class="form-group d-flex align-items-center justify-content-between">
-                <div class="form-check">
-                    <label class="form-check-label">
-                        <input type="checkbox" class="form-check-input" name="remember"> Remember me
-                    </label>
+<div class="row justify-content-center">
+    <div class="col-xl-10 col-lg-12 col-md-9">
+        <div class="card o-hidden border-0 shadow-lg my-5">
+            <div class="card-body p-0">
+                <div class="row">
+                    <div class="col-lg-6 d-none d-lg-block bg-login-image"></div>
+                    <div class="col-lg-6">
+                        <div class="p-5">
+                            <div class="text-center">
+                                <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
+                            </div>
+                            <form class="user" method="POST" action="{{ route('login') }}">
+                                @csrf
+                                <div class="form-group">
+                                    <input type="email" name="email" class="form-control form-control-user @error('email') is-invalid @enderror" placeholder="Enter Email Address..." value="{{ old('email') }}" required autofocus>
+                                    @error('email')
+                                        <span class="text-danger small">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                                <div class="form-group">
+                                    <input type="password" name="password" class="form-control form-control-user @error('password') is-invalid @enderror" placeholder="Password" required>
+                                    @error('password')
+                                        <span class="text-danger small">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                                <div class="form-group">
+                                    <div class="custom-control custom-checkbox small">
+                                        <input type="checkbox" class="custom-control-input" id="remember" name="remember">
+                                        <label class="custom-control-label" for="remember">Remember Me</label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-user btn-block">
+                                    Login
+                                </button>
+                            </form>
+                            <hr>
+                            <div class="text-center">
+                                <a class="small" href="{{ route('password.request') }}">Forgot Password?</a>
+                            </div>
+                            <div class="text-center">
+                                <a class="small" href="{{ route('register') }}">Create an Account!</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <a href="{{ route('password.request') }}" class="forgot-pass">Forgot password</a>
             </div>
-
-            <div class="text-center">
-                <button type="submit" class="btn btn-primary btn-block enter-btn">Login</button>
-            </div>
-
-            <p class="sign-up text-center mt-3">Don't have an Account?
-                <a href="{{ route('register') }}"> Sign Up</a>
-            </p>
-        </form>
-    </div>
+        </div>
+    </div> 
 </div>
 @endsection

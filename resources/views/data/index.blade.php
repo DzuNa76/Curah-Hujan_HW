@@ -4,75 +4,73 @@
 
 @section('content')
 <div class="row">
-    <div class="col-lg-12 grid-margin stretch-card">
+    <!-- Card Deskripsi -->
+    <div class="col-md-12 grid-margin stretch-card">
         <div class="card">
             <div class="card-body">
-                <h4 class="card-title d-flex justify-content-between align-items-center">
-                    <span>Data Curah Hujan</span>
-                    <a href="{{ route('rainfall.create') }}" class="btn btn-primary">Tambah Data</a>
-                </h4>
+                <h4 class="card-title">Data Curah Hujan</h4>
+                <p class="card-description">
+                    Halaman ini menampilkan data curah hujan bulanan beserta jumlah hari hujan.
+                    Anda dapat menambahkan data baru, mengedit, atau menghapus data yang sudah ada.
+                </p>
+                <a href="{{ route('rainfall.create') }}" class="btn btn-primary btn-sm">
+                    <i class="mdi mdi-plus-circle"></i> Tambah Data
+                </a>
+            </div>
+        </div>
+    </div>
 
-                <!-- Pesan sukses -->
-                @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {{ session('success') }}
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                @endif
-
+    <!-- Card Tabel -->
+    <div class="col-md-12 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
                 <div class="table-responsive">
-                    <table id="rainfallTable" class="table table-bordered table-striped">
-                        <thead class="thead-dark">
+                    <table id="rainfallTable" class="table table-striped table-hover">
+                        <thead class="table-dark">
                             <tr>
                                 <th>No</th>
-                                <th>Bulan-Tahun</th>
+                                <th>Bulan - Tahun</th>
                                 <th>Curah Hujan (mm)</th>
                                 <th>Hari Hujan</th>
-                                <th>Aksi</th>
+                                <th class="text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($rainfallData as $data)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($data->month_year)->translatedFormat('F Y') }}</td>
-                                    <td>{{ $data->rainfall_amount }}</td>
-                                    <td>{{ $data->rain_days }}</td>
-                                    <td>
-                                        <a href="{{ route('rainfall.edit', $data->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                        <form action="{{ route('rainfall.destroy', $data->id) }}" method="POST" style="display:inline-block;">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Hapus data ini?')">Hapus</button>
-                                        </form>
-                                    </td>
-                                </tr>
+                            <tr>
+                                <td>{{ $loop->iteration }}</td>
+                                <td>{{ \Carbon\Carbon::parse($data->month_year)->translatedFormat('F Y') }}</td>
+                                <td>{{ number_format($data->rainfall_amount, 2) }}</td>
+                                <td>{{ $data->rain_days }}</td>
+                                <td class="text-center">
+                                    <a href="{{ route('rainfall.edit', $data->id) }}" class="btn btn-warning btn-sm"><i class="mdi mdi-pencil"></i> Edit
+                                    </a>
+                                    <form action="{{ route('rainfall.destroy', $data->id) }}" method="POST" style="display:inline-block;">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger btn-sm" 
+                                                onclick="return confirm('Hapus data ini?')">
+                                            <i class="mdi mdi-delete"></i> Hapus
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
                             @endforeach
-                        </tbody>                        
+                        </tbody>
                     </table>
                 </div>
-
             </div>
         </div>
     </div>
 </div>
 @endsection
 
+@include('components.datatables')
+
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function(){
-        // jika ingin auto-close setelah 10 detik:
-        const alertEl = document.querySelector('.alert');
-        if(alertEl){
-            setTimeout(function(){
-                // bootstrap 5: remove element gracefully
-                alertEl.classList.remove('show');
-                alertEl.classList.add('hide');
-                // atau $(alertEl).alert('close'); jika jQuery + bootstrap
-            }, 3000);
-        }
+    $(document).ready(function(){
+        initDataTable('rainfallTable');
     });
-</script>    
+</script>
 @endpush
