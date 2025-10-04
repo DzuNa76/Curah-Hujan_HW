@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RainfallDataController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ForecastingController;
 
 // Beranda -> redirect ke login
 Route::get('/', function () {
@@ -47,3 +48,6 @@ Route::resource('rainfall', RainfallDataController::class);
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('users', UserController::class);
 });
+
+// Peramalan
+Route::get('/forecasting', [ForecastingController::class, 'index'])->name('forecasting.index'); 
