@@ -10,14 +10,16 @@
         Anda dapat menambahkan data baru, mengedit, atau menghapus data yang sudah ada.
     </p>
 
+    {{-- alert success 5 second --}}
+    @include('components.alert')
+
     <!-- DataTables Example -->
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">Tabel Data Curah Hujan</h6>
             <a href="{{ route('rainfall.create') }}" class="btn btn-sm btn-primary">Tambah Data</a>
         </div>
-        {{-- alert success 5 second --}}
-        @include('components.alert')
+        
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-bordered table-hover" id="rainfallTable" width="100%" cellspacing="0">
@@ -35,20 +37,17 @@
                         <tr>
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ \Carbon\Carbon::parse($data->month_year)->translatedFormat('F Y') }}</td>
-                            <td>{{ number_format($data->rainfall_amount, 1) }}</td>
+                            <td>{{ number_format($data->rainfall_amount, 2) }}</td>
                             <td>{{ $data->rain_days }}</td>
                             <td class="text-center">
                                 <a href="{{ route('rainfall.edit', $data->id) }}" class="btn btn-warning btn-sm" title="Edit">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
-                                <form action="{{ route('rainfall.destroy', $data->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm" 
-                                            onclick="return confirm('Hapus data ini?')" title="Hapus">
-                                        <i class="fas fa-trash"></i> Hapus
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-danger btn-sm btn-delete"
+                                        data-action="{{ route('rainfall.destroy', $data->id) }}">
+                                    <i class="fas fa-trash"></i> Hapus
+                                </button>
+                                @include('components.delete-modal')
                             </td>
                         </tr>
                         @endforeach
@@ -58,13 +57,3 @@
         </div>
     </div>
 @endsection
-
-@include('components.datatables')
-
-@push('scripts')
-<script>
-    $(document).ready(function(){
-        initDataTable('rainfallTable');
-    });
-</script>
-@endpush

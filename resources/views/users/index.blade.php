@@ -8,14 +8,7 @@
     <p class="mb-4">Halaman ini digunakan untuk mengelola akun user aplikasi.</p>
 
     <!-- Alert -->
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle"></i> {{ session('success') }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-    @endif
+    @include('components.alert')
 
     <!-- DataTales Example -->
     <div class="card shadow mb-4">
@@ -52,13 +45,11 @@
                                     <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning">
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
-                                    <form action="{{ route('users.destroy', $user->id) }}" method="POST" class="d-inline">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger"
-                                            onclick="return confirm('Yakin ingin menghapus user ini?')">
-                                            <i class="fas fa-trash"></i> Hapus
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-danger btn-sm btn-delete"
+                                        data-action="{{ route('users.destroy', $user->id) }}">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
+                                    @include('components.delete-modal')
                                 </td>
                             </tr>
                         @endforeach
