@@ -16,6 +16,8 @@
             <h6 class="m-0 font-weight-bold text-primary">Tabel Data Curah Hujan</h6>
             <a href="{{ route('rainfall.create') }}" class="btn btn-sm btn-primary">Tambah Data</a>
         </div>
+        {{-- alert success 5 second --}}
+        @include('components.alert')
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-bordered table-hover" id="rainfallTable" width="100%" cellspacing="0">
