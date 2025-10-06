@@ -50,4 +50,5 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 });
 
 // Peramalan
-Route::get('/forecasting', [ForecastingController::class, 'index'])->name('forecasting.index'); 
+Route::get('/forecasting', [ForecastingController::class, 'index'])->name('forecasting.index');
+Route::get('/forecasting/process', [ForecastingController::class, 'process'])->name('forecasting.process');

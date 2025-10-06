@@ -12,7 +12,7 @@
         <h6 class="m-0 font-weight-bold">Parameter Peramalan</h6>
     </div>
     <div class="card-body">
-        <form method="GET" action="{{ route('forecasting.index') }}" class="row g-3">
+        <form method="GET" action="{{ route('forecasting.process') }}" class="row g-3">
             <div class="col-md-2">
                 <label for="alpha">Alpha (α)</label>
                 <input type="number" step="0.01" min="0" max="1" name="alpha" value="{{ $alpha }}" class="form-control" required>
@@ -49,14 +49,25 @@
 </div>
 
 {{-- Grafik dan Tabel --}}
-@if(!$message)
+@if(!isset($message) || !$message)
+{{-- Evaluasi --}}
+<div class="card shadow mb-4">
+    <div class="card-header bg-secondary text-white">
+        <h6 class="m-0 font-weight-bold">Evaluasi Peramalan</h6>
+    </div>
+    <div class="card-body">
+        <p><strong>MAE (Mean Absolute Error):</strong> {{ $mae }}</p>
+        <p><strong>RMSE (Root Mean Square Error):</strong> {{ $rmse }}</p>
+    </div>
+</div>
+
+
 <div class="card shadow mb-4">
     <div class="card-header bg-info text-white">
         <h6 class="m-0 font-weight-bold">Hasil Peramalan</h6>
     </div>
     <div class="card-body">
         <canvas id="forecastChart" height="120"></canvas>
-
         <div class="table-responsive mt-4">
             <table class="table table-bordered">
                 <thead class="table-light">
@@ -89,22 +100,11 @@
         </div>
     </div>
 </div>
-
-{{-- Evaluasi --}}
-<div class="card shadow">
-    <div class="card-header bg-secondary text-white">
-        <h6 class="m-0 font-weight-bold">Evaluasi Peramalan</h6>
-    </div>
-    <div class="card-body">
-        <p><strong>MAE (Mean Absolute Error):</strong> {{ $mae }}</p>
-        <p><strong>RMSE (Root Mean Square Error):</strong> {{ $rmse }}</p>
-    </div>
-</div>
 @endif
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-@if(!$message)
+@if(!isset($message) || !$message)
 const ctx = document.getElementById('forecastChart').getContext('2d');
 new Chart(ctx, {
     type: 'line',

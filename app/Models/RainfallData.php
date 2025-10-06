@@ -15,36 +15,41 @@ class RainfallData extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = ['id', 'date', 'month', 'year', 'rainfall_amount', 'rain_days'];
+    protected $fillable = [
+        'id',
+        'date',
+        'rainfall_amount',
+        'rain_days',
+        'created_at',
+        'updated_at',
+    ];
 
-    // Jika ada kolom date, cast otomatis
+    // Cast date ke Carbon otomatis
     protected $casts = [
         'date' => 'date',
     ];
 
-    // Accessor -> mengembalikan 'Y-m' (mis. 2024-12) atau null
+    /**
+     * Accessor: mengembalikan 'Y-m' (mis. "2021-01") atau null
+     */
     public function getMonthYearAttribute()
     {
-        if (!empty($this->month) && !empty($this->year)) {
-            return $this->year . '-' . str_pad($this->month, 2, '0', STR_PAD_LEFT);
-        }
-
-        if (!empty($this->date)) {
+        if ($this->date) {
             return $this->date->format('Y-m');
         }
-
         return null;
     }
 
-    // Accessor -> label yang sudah terformat 'Desember 2024' (handle null)
+    /**
+     * Accessor: label seperti "Januari 2021" (atau '-' jika null)
+     */
     public function getMonthYearLabelAttribute()
     {
-        $my = $this->month_year; // memanggil accessor di atas
-        if ($my) {
+        if ($this->date) {
             try {
-                return Carbon::createFromFormat('Y-m', $my)->translatedFormat('F Y');
+                return $this->date->translatedFormat('F Y'); // membutuhkan locale jika mau bahasa Indonesia
             } catch (\Exception $e) {
-                return $my; // fallback
+                return $this->date->format('Y-m');
             }
         }
         return '-';
