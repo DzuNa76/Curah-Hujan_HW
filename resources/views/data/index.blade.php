@@ -25,7 +25,7 @@
                 <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
-                            <th>No</th>
+                            <th>Kode</th>
                             <th>Bulan - Tahun</th>
                             <th>Curah Hujan (mm)</th>
                             <th>Hari Hujan</th>
@@ -35,7 +35,7 @@
                     <tbody>
                         @foreach($rainfallData as $data)
                         <tr>
-                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $data->month_year }}</td>
                             <td>{{ \Carbon\Carbon::parse($data->month_year)->translatedFormat('F Y') }}</td>
                             <td>{{ number_format($data->rainfall_amount, 2) }}</td>
                             <td>{{ $data->rain_days }}</td>
