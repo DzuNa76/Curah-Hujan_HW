@@ -83,106 +83,128 @@ class ForecastingController extends Controller
 
         $values = array_values($data);
         $labels = array_keys($data);
-        $L_period = 12; // panjang musim (12 bulan)
+        $m = 12; // panjang musim (12 bulan)
         $n = count($values);
 
-        if ($n < 2 * $L_period) {
-            return back()->with('error', "Dibutuhkan minimal " . (2 * $L_period) . " bulan data (2 musim). Data saat ini: " . $n . " bulan.");
+        if ($n < 2 * $m) {
+            return back()->with('error', "Dibutuhkan minimal " . (2 * $m) . " bulan data (2 musim). Data saat ini: " . $n . " bulan.");
         }
 
         // ========================================
-        // INISIALISASI SESUAI RUMUS HOLT-WINTERS ADDITIVE
+        // INISIALISASI KOMPONEN (Hyndman & Athanasopoulos)
         // ========================================
 
-        // 1) Level awal: S_L = (1/L) * Σ(X_1 ... X_L)
-        $S_L = 0.0;
-        for ($i = 0; $i < $L_period; $i++) {
-            $S_L += $values[$i];
-        }
-        $S_L /= $L_period;
+        $seasons = intdiv($n, $m);
+        $avg_month = array_fill(0, $m, 0.0);
 
-        // 2) Trend awal: T_L = (1/L) * Σ[(X_{L+i} - X_i) / L]
-        $T_L = 0.0;
-        for ($i = 0; $i < $L_period; $i++) {
-            $T_L += ($values[$L_period + $i] - $values[$i]) / $L_period;
-        }
-        $T_L /= $L_period;
-
-        // 3) Seasonal Index awal: I_t = X_t - S_L (untuk additive)
-        $I = [];
-        for ($i = 0; $i < $L_period; $i++) {
-            $I[$i] = $values[$i] - $S_L;
+        // 1) Rata-rata tiap posisi bulan
+        for ($i = 0; $i < $m; $i++) {
+            $sum = 0.0;
+            for ($s = 0; $s < $seasons; $s++) {
+                $sum += $values[$s * $m + $i];
+            }
+            $avg_month[$i] = $sum / $seasons;
         }
 
-        // ========================================
-        // ARRAY UNTUK MENYIMPAN KOMPONEN
-        // ========================================
-        $S = array_fill(0, $n + 12, null); // Level
-        $T = array_fill(0, $n + 12, null); // Trend
-        $I_values = array_fill(0, $n + 12, null); // Seasonal
-        $F = array_fill(0, $n + 12, null); // Forecast
-        $errors = array_fill(0, $n + 12, null); // Error
+        // 2) Overall mean
+        $overall_mean = array_sum(array_slice($values, 0, $seasons * $m)) / ($seasons * $m);
 
-        // Set nilai awal (untuk t = 0 sampai L-1)
-        for ($t = 0; $t < $L_period; $t++) {
-            $S[$t] = $S_L;
-            $T[$t] = $T_L;
-            $I_values[$t] = $I[$t];
+        // 3) Seasonal index awal (S_i = rata-rata bulan - rata-rata keseluruhan)
+        $S = array_fill(0, $m, 0.0);
+        for ($i = 0; $i < $m; $i++) {
+            $S[$i] = $avg_month[$i] - $overall_mean;
         }
 
-        // ========================================
-        // SMOOTHING (dari t = L sampai n-1)
-        // ========================================
-        for ($t = $L_period; $t < $n; $t++) {
-            $seasonal_index = $t % $L_period;
+        // Normalisasi agar Σ S[i] = 0
+        $S_sum = array_sum($S);
+        for ($i = 0; $i < $m; $i++) {
+            $S[$i] -= ($S_sum / $m);
+        }
 
-            // Forecast untuk t (menggunakan komponen t-1)
-            $F[$t] = $S[$t - 1] + $T[$t - 1] + $I[$seasonal_index];
+        // 4) Level awal (L₀ = rata-rata (Y_i - S_i))
+        $level0 = 0.0;
+        for ($i = 0; $i < $m; $i++) {
+            $level0 += ($values[$i] - $S[$i]);
+        }
+        $level0 /= $m;
+
+        // 5) Trend awal sesuai rumus asli Hyndman & Athanasopoulos (2018)
+        // T₀ = (1/m²) × Σ(Y[m+i] − Y[i])
+        $trend_sum = 0.0;
+        for ($i = 0; $i < $m; $i++) {
+            $trend_sum += ($values[$m + $i] - $values[$i]);
+        }
+        $trend0 = $trend_sum / ($m * $m);
+
+        // ========================================
+        // SMOOTHING
+        // ========================================
+        $L = array_fill(0, $n + 12, null);
+        $T = array_fill(0, $n + 12, null);
+        $F = array_fill(0, $n + 12, null);
+        $errors = array_fill(0, $n + 12, null);
+        $S_values = array_fill(0, $n + 12, null);
+
+        // Set nilai awal
+        for ($t = 0; $t < $m; $t++) {
+            $L[$t] = $level0;
+            $T[$t] = $trend0;
+            $S_values[$t] = $S[$t % $m];
+        }
+
+        // Iterasi smoothing mulai dari t = m
+        for ($t = $m; $t < $n; $t++) {
+            $s_idx = $t % $m;
+
+            // Forecast
+            $F[$t] = $L[$t - 1] + $T[$t - 1] + $S[$s_idx];
 
             // Error
             $errors[$t] = $values[$t] - $F[$t];
 
-            // Update Level: S_t = α(X_t - I_{t-L}) + (1-α)(S_{t-1} + T_{t-1})
-            $S[$t] = $alpha * ($values[$t] - $I[$seasonal_index]) + (1 - $alpha) * ($S[$t - 1] + $T[$t - 1]);
+            // Simpan nilai seasonal lama
+            $S_old = $S[$s_idx];
 
-            // Update Trend: T_t = β(S_t - S_{t-1}) + (1-β)T_{t-1}
-            $T[$t] = $beta * ($S[$t] - $S[$t - 1]) + (1 - $beta) * $T[$t - 1];
+            // Update Level
+            $L[$t] = $alpha * ($values[$t] - $S_old) + (1 - $alpha) * ($L[$t - 1] + $T[$t - 1]);
 
-            // Update Seasonal: I_t = γ(X_t - S_t) + (1-γ)I_{t-L}
-            $I[$seasonal_index] = $gamma * ($values[$t] - $S[$t]) + (1 - $gamma) * $I[$seasonal_index];
+            // Update Trend
+            $T[$t] = $beta * ($L[$t] - $L[$t - 1]) + (1 - $beta) * $T[$t - 1];
 
-            $I_values[$t] = $I[$seasonal_index];
+            // Update Seasonal
+            $S[$s_idx] = $gamma * ($values[$t] - $L[$t]) + (1 - $gamma) * $S_old;
+
+            $S_values[$t] = $S[$s_idx];
         }
 
         // ========================================
         // FORECAST KE DEPAN (12 BULAN)
         // ========================================
         $H = 12;
-        $lastS = $S[$n - 1];
+        $lastL = $L[$n - 1];
         $lastT = $T[$n - 1];
 
         for ($h = 1; $h <= $H; $h++) {
             $t = $n + $h - 1;
-            $seasonal_index = $t % $L_period;
+            $s_idx = $t % $m;
 
-            // F_{t+m} = S_t + m*T_t + I_{t-L+m}
-            $F[$t] = $lastS + $h * $lastT + $I[$seasonal_index];
-
+            $forecast = $lastL + $h * $lastT + $S[$s_idx];
             $nextLabel = Carbon::parse($labels[$n - 1] . '-01')->addMonths($h)->format('Y-m');
 
             $labels[] = $nextLabel;
             $values[] = null;
-            $S[$t] = $lastS;
+            $L[$t] = $lastL;
             $T[$t] = $lastT;
-            $I_values[$t] = $I[$seasonal_index];
+            $S_values[$t] = $S[$s_idx];
+            $F[$t] = $forecast;
             $errors[$t] = null;
         }
 
         // ========================================
-        // EVALUASI AKURASI (hanya dari data aktual)
+        // EVALUASI AKURASI
         // ========================================
         $validErrors = [];
-        for ($t = $L_period; $t < $n; $t++) {
+        for ($t = $m; $t < $n; $t++) {
             if (!is_null($errors[$t])) {
                 $validErrors[] = $errors[$t];
             }
@@ -198,7 +220,7 @@ class ForecastingController extends Controller
 
         $mapeSum = 0;
         $mapeCount = 0;
-        for ($t = $L_period; $t < $n; $t++) {
+        for ($t = $m; $t < $n; $t++) {
             if (!is_null($errors[$t]) && $values[$t] != 0) {
                 $mapeSum += abs($errors[$t] / $values[$t]);
                 $mapeCount++;
@@ -224,10 +246,10 @@ class ForecastingController extends Controller
             'alpha'    => $alpha,
             'beta'     => $beta,
             'gamma'    => $gamma,
-            'L'        => $S, // Level (gunakan S sesuai notasi standar)
-            'T'        => $T, // Trend
-            'S'        => $I_values, // Seasonal (I dalam rumus, tapi tetap pakai 'S' di view)
-            'F'        => $F, // Forecast
+            'L'        => $L,
+            'T'        => $T,
+            'S'        => $S_values,
+            'F'        => $F,
             'errors'   => $errors,
             'mae'      => round($mae, 2),
             'rmse'     => round($rmse, 2),
