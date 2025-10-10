@@ -13,16 +13,39 @@ class RegencyController extends Controller
         return view('regencies.index', compact('regencies'));
     }
 
+    public function create()
+    {
+        return view('regencies.create');
+    }
+
     public function store(Request $request)
     {
-        $request->validate(['name' => 'required|string|unique:regencies,name']);
+        $request->validate([
+            'name' => 'required|string|max:100|unique:regencies,name'
+        ]);
+
         Regency::create($request->only('name'));
-        return back()->with('success', 'Kabupaten berhasil ditambahkan.');
+        return redirect()->route('regencies.index')->with('success', 'Kabupaten berhasil ditambahkan!');
+    }
+
+    public function edit(Regency $regency)
+    {
+        return view('regencies.edit', compact('regency'));
+    }
+
+    public function update(Request $request, Regency $regency)
+    {
+        $request->validate([
+            'name' => 'required|string|max:100|unique:regencies,name,' . $regency->id
+        ]);
+
+        $regency->update($request->only('name'));
+        return redirect()->route('regencies.index')->with('success', 'Kabupaten berhasil diperbarui!');
     }
 
     public function destroy(Regency $regency)
     {
         $regency->delete();
-        return back()->with('success', 'Kabupaten dihapus.');
+        return redirect()->route('regencies.index')->with('success', 'Kabupaten berhasil dihapus!');
     }
 }
