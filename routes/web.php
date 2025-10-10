@@ -6,6 +6,10 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RainfallDataController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ForecastingController;
+use App\Http\Controllers\RegencyController;
+use App\Http\Controllers\DistrictController;
+use App\Http\Controllers\VillageController;
+use App\Http\Controllers\StationController;
 
 // Beranda -> redirect ke login
 Route::get('/', function () {
@@ -52,3 +56,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 // Peramalan
 Route::get('/forecasting', [ForecastingController::class, 'index'])->name('forecasting.index');
 Route::get('/forecasting/process', [ForecastingController::class, 'process'])->name('forecasting.process');
+
+Route::resource('regencies', RegencyController::class);
+Route::resource('districts', DistrictController::class);
+Route::resource('villages', VillageController::class);
+Route::resource('stations', StationController::class);

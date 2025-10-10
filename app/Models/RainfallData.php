@@ -17,41 +17,33 @@ class RainfallData extends Model
 
     protected $fillable = [
         'id',
+        'station_id',
         'date',
         'rainfall_amount',
         'rain_days',
-        'created_at',
-        'updated_at',
     ];
 
-    // Cast date ke Carbon otomatis
     protected $casts = [
         'date' => 'date',
     ];
 
-    /**
-     * Accessor: mengembalikan 'Y-m' (mis. "2021-01") atau null
-     */
-    public function getMonthYearAttribute()
+    /** 🏞️ Relasi: Data ini berasal dari satu stasiun */
+    public function station()
     {
-        if ($this->date) {
-            return $this->date->format('Y-m');
-        }
-        return null;
+        return $this->belongsTo(Station::class, 'station_id');
     }
 
-    /**
-     * Accessor: label seperti "Januari 2021" (atau '-' jika null)
-     */
+    /** 📅 Akses label format Y-m */
+    public function getMonthYearAttribute()
+    {
+        return $this->date ? $this->date->format('Y-m') : null;
+    }
+
+    /** 📅 Label bulan dalam format "Januari 2021" */
     public function getMonthYearLabelAttribute()
     {
-        if ($this->date) {
-            try {
-                return $this->date->translatedFormat('F Y'); // membutuhkan locale jika mau bahasa Indonesia
-            } catch (\Exception $e) {
-                return $this->date->format('Y-m');
-            }
-        }
-        return '-';
+        return $this->date
+            ? $this->date->translatedFormat('F Y')
+            : '-';
     }
 }

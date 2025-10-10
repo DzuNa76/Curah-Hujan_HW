@@ -14,6 +14,23 @@
         <div class="card-body">
             <form action="{{ route('rainfall.store') }}" method="POST">
                 @csrf
+
+                {{-- Pilihan Stasiun --}}
+                <div class="form-group">
+                    <label for="station_id">Pos / Stasiun Pengamatan</label>
+                    <select id="station_id" name="station_id" class="form-control" required>
+                        <option value="">-- Pilih Stasiun --</option>
+                        @foreach ($stations as $station)
+                            <option value="{{ $station->id }}">
+                                {{ $station->station_name }} — 
+                                {{ $station->village->name }},
+                                {{ $station->village->district->name }},
+                                {{ $station->village->district->regency->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
                 <div class="form-group">
                     <label for="monthYear">Bulan dan Tahun</label>
                     <input type="month" id="monthYear" name="monthYear" class="form-control" required autofocus>
