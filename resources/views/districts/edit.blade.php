@@ -30,7 +30,8 @@
 
                 <div class="form-group">
                     <label for="name">Nama Kecamatan</label>
-                    <input type="text" id="name" name="name" value="{{ old('name', $district->name) }}" class="form-control" required>
+                    <input type="text" id="name" name="name" value="{{ old('name', $district->name) }}"
+                           class="form-control" required>
                 </div>
 
                 <div class="form-group">

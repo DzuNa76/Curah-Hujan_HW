@@ -16,8 +16,11 @@ class StationController extends Controller
 
     public function create()
     {
-        $villages = Village::with('district.regency')->get();
-        return view('stations.create', compact('villages'));
+        $regencies = \App\Models\Regency::all();
+        $districts = \App\Models\District::all();
+        $villages  = \App\Models\Village::all();
+
+        return view('stations.create', compact('regencies', 'districts', 'villages'));
     }
 
     public function store(Request $request)
@@ -31,10 +34,14 @@ class StationController extends Controller
         return redirect()->route('stations.index')->with('success', 'Stasiun berhasil ditambahkan!');
     }
 
-    public function edit(Station $station)
+    public function edit($id)
     {
-        $villages = Village::with('district.regency')->get();
-        return view('stations.edit', compact('station', 'villages'));
+        $station   = \App\Models\Station::findOrFail($id);
+        $regencies = \App\Models\Regency::all();
+        $districts = \App\Models\District::all();
+        $villages  = \App\Models\Village::all();
+
+        return view('stations.edit', compact('station', 'regencies', 'districts', 'villages'));
     }
 
     public function update(Request $request, Station $station)

@@ -29,7 +29,8 @@
 
                 <div class="form-group">
                     <label for="name">Nama Kecamatan</label>
-                    <input type="text" id="name" name="name" value="{{ old('name') }}" class="form-control" placeholder="Masukkan nama kecamatan" required autofocus>
+                    <input type="text" id="name" name="name" value="{{ old('name') }}"
+                           class="form-control" placeholder="Masukkan nama kecamatan" required autofocus>
                 </div>
 
                 <div class="form-group">
