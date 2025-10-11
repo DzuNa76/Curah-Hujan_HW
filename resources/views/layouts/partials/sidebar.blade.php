@@ -24,28 +24,6 @@
     <hr class="sidebar-divider">
 
     <!-- Heading -->
-    <div class="sidebar-heading">Data Curah Hujan</div>
-
-    <!-- Nav Item - Data Hujan -->
-    <li class="nav-item {{ request()->is('rainfall*') ? 'active' : '' }}">
-        <a class="nav-link" href="{{ route('rainfall.index') }}">
-            <i class="fas fa-fw fa-cloud-rain"></i>
-            <span>Data Hujan</span>
-        </a>
-    </li>
-
-    <!-- Nav Item - Forecasting -->
-    <li class="nav-item {{ request()->is('forecasting*') ? 'active' : '' }}">
-        <a class="nav-link" href="{{ route('forecasting.index') }}">
-            <i class="fas fa-fw fa-chart-line"></i>
-            <span>Peramalan</span>
-        </a>
-    </li>
-
-    <!-- Divider -->
-    <hr class="sidebar-divider">
-
-    <!-- Heading -->
     <div class="sidebar-heading">Master Data Wilayah</div>
 
     <!-- Nav Item - Master Data Collapse Menu -->
@@ -90,6 +68,26 @@
                 </a>
             </div>
         </div>
+    </li>
+
+    <!-- Nav Item - Data Hujan -->
+    <li class="nav-item {{ request()->is('rainfall*') ? 'active' : '' }}">
+        <a class="nav-link" href="{{ route('rainfall.index') }}">
+            <i class="fas fa-fw fa-cloud-rain"></i>
+            <span>Data Hujan</span>
+        </a>
+    </li>
+
+    <!-- Divider -->
+    <hr class="sidebar-divider">
+
+    <div class="sidebar-heading">Peramalan Curah Hujan</div>
+    <!-- Nav Item - Forecasting -->
+    <li class="nav-item {{ request()->is('forecasting*') ? 'active' : '' }}">
+        <a class="nav-link" href="{{ route('forecasting.index') }}">
+            <i class="fas fa-fw fa-chart-line"></i>
+            <span>Peramalan Curah Hujan</span>
+        </a>
     </li>
 
     <!-- Divider -->
