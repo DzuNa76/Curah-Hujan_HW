@@ -30,7 +30,7 @@
 
                 <div class="form-group">
                     <label for="name">Nama Kabupaten / Kota</label>
-                    <input type="text" id="name" name="name" value="{{ old('name') }}" class="form-control" placeholder="Masukkan nama kabupaten/kota" required autofocus>
+                    <input type="text" id="name" name="name" value="{{ old('name') }}"class="form-control" placeholder="Masukkan nama kabupaten/kota" required autofocus>
                 </div>
 
                 <div class="d-flex justify-content-between mt-3">
