@@ -16,8 +16,9 @@ class VillageController extends Controller
 
     public function create()
     {
-        $districts = District::with('regency')->get();
-        return view('villages.create', compact('districts'));
+        $regencies = \App\Models\Regency::all();
+        $districts = \App\Models\District::all();
+        return view('villages.create', compact('regencies', 'districts'));
     }
 
     public function store(Request $request)
@@ -31,10 +32,12 @@ class VillageController extends Controller
         return redirect()->route('villages.index')->with('success', 'Desa berhasil ditambahkan!');
     }
 
-    public function edit(Village $village)
+    public function edit($id)
     {
-        $districts = District::with('regency')->get();
-        return view('villages.edit', compact('village', 'districts'));
+        $village   = \App\Models\Village::findOrFail($id);
+        $regencies = \App\Models\Regency::all();
+        $districts = \App\Models\District::all();
+        return view('villages.edit', compact('village', 'regencies', 'districts'));
     }
 
     public function update(Request $request, Village $village)
