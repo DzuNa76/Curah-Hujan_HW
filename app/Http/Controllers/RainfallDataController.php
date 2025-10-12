@@ -27,8 +27,7 @@ class RainfallDataController extends Controller
      */
     public function create()
     {
-        // Ambil semua stasiun untuk dropdown
-        $stations = Station::with('village.district.regency')->get();
+        $stations = \App\Models\Station::all();
         return view('data.create', compact('stations'));
     }
 
@@ -40,70 +39,76 @@ class RainfallDataController extends Controller
         $request->validate([
             'station_id' => 'required|exists:stations,id',
             'monthYear' => 'required|date_format:Y-m',
-            'rainfall_amount' => 'required|numeric|min:0',
-            'rain_days' => 'required|integer|min:0',
+            'rainfall_amount' => 'required|numeric',
+            'rain_days' => 'required|integer',
         ]);
 
-        // Konversi "YYYY-MM" jadi objek tanggal Carbon
-        $date = Carbon::createFromFormat('Y-m', $request->monthYear);
-        $id = $date->translatedFormat('M-Y'); // contoh: Des-2024
+        $date = \Carbon\Carbon::createFromFormat('Y-m', $request->monthYear);
+        $id = $date->translatedFormat('M-Y');
 
         RainfallData::create([
-            'id' => $id,
             'station_id' => $request->station_id,
+            'id' => $id,
             'date' => $date->startOfMonth(),
             'rainfall_amount' => $request->rainfall_amount,
             'rain_days' => $request->rain_days,
         ]);
 
-        return redirect()->route('rainfall.index')
-            ->with('success', 'Data curah hujan berhasil ditambahkan!');
+        return redirect()->route('rainfall.index')->with('success', 'Data berhasil ditambahkan!');
     }
 
     /**
      * Form edit data
      */
-    public function edit($id)
+    public function edit($station_id, $id)
     {
-        $rainfall = RainfallData::findOrFail($id);
-        $stations = Station::with('village.district.regency')->get();
+        $rainfall = RainfallData::where('station_id', $station_id)
+                                ->where('id', $id)
+                                ->firstOrFail();
+        $stations = \App\Models\Station::all();
+
         return view('data.edit', compact('rainfall', 'stations'));
     }
 
     /**
      * Update data curah hujan
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $station_id, $id)
     {
         $request->validate([
             'station_id' => 'required|exists:stations,id',
             'monthYear' => 'required|date_format:Y-m',
-            'rainfall_amount' => 'required|numeric|min:0',
-            'rain_days' => 'required|integer|min:0',
+            'rainfall_amount' => 'required|numeric',
+            'rain_days' => 'required|integer',
         ]);
 
-        $date = Carbon::createFromFormat('Y-m', $request->monthYear);
+        $date = \Carbon\Carbon::createFromFormat('Y-m', $request->monthYear);
         $newId = $date->translatedFormat('M-Y');
 
-        $rainfall = RainfallData::findOrFail($id);
+        $rainfall = RainfallData::where('station_id', $station_id)
+                                ->where('id', $id)
+                                ->firstOrFail();
+
         $rainfall->update([
-            'id' => $newId,
             'station_id' => $request->station_id,
+            'id' => $newId,
             'date' => $date->startOfMonth(),
             'rainfall_amount' => $request->rainfall_amount,
             'rain_days' => $request->rain_days,
         ]);
 
-        return redirect()->route('rainfall.index')
-            ->with('success', 'Data curah hujan berhasil diperbarui!');
+        return redirect()->route('rainfall.index')->with('success', 'Data berhasil diperbarui!');
     }
 
     /**
      * Hapus data
      */
-    public function destroy($id)
+    public function destroy($station_id, $id)
     {
-        $rainfall = RainfallData::findOrFail($id);
+        $rainfall = RainfallData::where('station_id', $station_id)
+                                ->where('id', $id)
+                                ->firstOrFail();
+
         $rainfall->delete();
 
         return redirect()->route('rainfall.index')

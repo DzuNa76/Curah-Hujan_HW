@@ -3,11 +3,10 @@
 @section('title', 'Tambah Data Curah Hujan')
 
 @section('content')
-    <!-- Page Heading -->
     <h1 class="h3 mb-2 text-gray-800">Tambah Data Curah Hujan</h1>
     <p class="mb-4">Silakan isi form berikut untuk menambahkan data curah hujan baru.</p>
 
-    <div class="card shadow mb-4 col-lg-4">
+    <div class="card shadow mb-4 col-lg-5">
         <div class="card-header py-3">
             <h6 class="m-0 font-weight-bold text-primary">Form Tambah Data</h6>
         </div>
@@ -22,7 +21,7 @@
                         <option value="">-- Pilih Stasiun --</option>
                         @foreach ($stations as $station)
                             <option value="{{ $station->id }}">
-                                {{ $station->station_name }} — 
+                                {{ $station->station_name }} —
                                 {{ $station->village->name }},
                                 {{ $station->village->district->name }},
                                 {{ $station->village->district->regency->name }}

@@ -41,7 +41,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // 🌧️ Data Curah Hujan
-    Route::resource('rainfall', RainfallDataController::class);
+    Route::prefix('rainfall')->name('rainfall.')->group(function () {
+        Route::get('/', [RainfallDataController::class, 'index'])->name('index');
+        Route::get('/create', [RainfallDataController::class, 'create'])->name('create');
+        Route::post('/', [RainfallDataController::class, 'store'])->name('store');
+        Route::get('/{station_id}/{id}/edit', [RainfallDataController::class, 'edit'])->name('edit');
+        Route::put('/{station_id}/{id}', [RainfallDataController::class, 'update'])->name('update');
+        Route::delete('/{station_id}/{id}', [RainfallDataController::class, 'destroy'])->name('destroy');
+    });
+
 
     // 📈 Forecasting
     Route::get('/forecasting', [ForecastingController::class, 'index'])->name('forecasting.index');

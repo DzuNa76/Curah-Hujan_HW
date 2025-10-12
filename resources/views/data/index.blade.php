@@ -45,14 +45,16 @@
                             <td>{{ number_format($data->rainfall_amount, 2) }}</td>
                             <td>{{ $data->rain_days }}</td>
                             <td class="text-center">
-                                <a href="{{ route('rainfall.edit', $data->id) }}" class="btn btn-warning btn-sm">
+                                <a href="{{ route('rainfall.edit', [$data->station_id, $data->id]) }}" class="btn btn-warning btn-sm">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
-                                <button type="button" class="btn btn-danger btn-sm btn-delete"
-                                        data-action="{{ route('rainfall.destroy', $data->id) }}">
+                                
+                                <button type="button" 
+                                        class="btn btn-danger btn-sm btn-delete"
+                                        data-action="{{ route('rainfall.destroy', [$data->station_id, $data->id]) }}">
                                     <i class="fas fa-trash"></i> Hapus
                                 </button>
-                                @include('components.delete-modal')
+                                
                             </td>
                         </tr>
                         @endforeach
@@ -61,4 +63,5 @@
             </div>
         </div>
     </div>
+    @include('components.delete-modal')
 @endsection
