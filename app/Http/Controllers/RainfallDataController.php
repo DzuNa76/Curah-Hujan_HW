@@ -12,14 +12,45 @@ class RainfallDataController extends Controller
     /**
      * Tampilkan semua data curah hujan dengan relasi stasiun
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil data dengan relasi stasiun dan wilayah
-        $rainfallData = RainfallData::with('station.village.district.regency')
-            ->orderBy('date', 'asc')
+        $stations = Station::with('village.district.regency')->get();
+        $selectedStation = $request->get('station_id', 'all');
+        $selectedYear = $request->get('year', Carbon::now()->year);
+
+        // --- Query dasar ---
+        $rainfallQuery = RainfallData::with('station.village.district.regency')
+            ->whereYear('date', $selectedYear);
+
+        if ($selectedStation !== 'all') {
+            $rainfallQuery->where('station_id', $selectedStation);
+        }
+
+        $rainfallData = $rainfallQuery->orderBy('date', 'asc')->get();
+
+        // --- Data grafik (rata-rata curah hujan per bulan) ---
+        $chartData = RainfallData::selectRaw('MONTH(date) as month, AVG(rainfall_amount) as avg_rain')
+            ->whereYear('date', $selectedYear)
+            ->when($selectedStation !== 'all', function ($q) use ($selectedStation) {
+                $q->where('station_id', $selectedStation);
+            })
+            ->groupBy('month')
+            ->orderBy('month', 'asc')
             ->get();
 
-        return view('data.index', compact('rainfallData'));
+        // --- Tahun tersedia di database ---
+        $availableYears = RainfallData::selectRaw('DISTINCT YEAR(date) as year')
+            ->orderBy('year', 'desc')
+            ->pluck('year');
+
+        return view('data.index', compact(
+            'rainfallData',
+            'stations',
+            'selectedStation',
+            'selectedYear',
+            'chartData',
+            'availableYears'
+        ));
     }
 
     /**
