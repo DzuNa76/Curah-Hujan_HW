@@ -33,22 +33,22 @@
                             <td>{{ $regency->id }}</td>
                             <td>{{ $regency->name }}</td>
                             <td class="text-center">
-                                <a href="{{ route('regencies.edit', $regency->id) }}" class="btn btn-warning btn-sm" title="Edit">
+                                <a href="{{ route('regencies.edit', $regency->id) }}" class="btn btn-warning btn-sm">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
-
-                                <button type="button" class="btn btn-danger btn-sm btn-delete"
+                    
+                                <button type="button"
+                                        class="btn btn-danger btn-sm btn-delete"
                                         data-action="{{ route('regencies.destroy', $regency->id) }}">
                                     <i class="fas fa-trash"></i> Hapus
                                 </button>
-
-                                @include('components.delete-modal')
                             </td>
                         </tr>
                         @endforeach
-                    </tbody>
+                    </tbody>                    
                 </table>
             </div>
         </div>
     </div>
+    @include('components.delete-modal')
 @endsection

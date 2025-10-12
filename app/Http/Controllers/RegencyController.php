@@ -45,7 +45,35 @@ class RegencyController extends Controller
 
     public function destroy(Regency $regency)
     {
+        // 🔍 Cek apakah masih ada kecamatan
+        if ($regency->districts()->exists()) {
+            return redirect()->route('regencies.index')
+                ->with('error', 'Kabupaten tidak dapat dihapus karena masih memiliki data kecamatan terkait.');
+        }
+
+        // 🔍 Cek apakah masih ada desa (lewat kecamatan)
+        if ($regency->districts()->whereHas('villages')->exists()) {
+            return redirect()->route('regencies.index')
+                ->with('error', 'Kabupaten tidak dapat dihapus karena masih memiliki data desa terkait.');
+        }
+
+        // 🔍 Cek apakah masih ada stasiun
+        if ($regency->districts()->whereHas('villages.stations')->exists()) {
+            return redirect()->route('regencies.index')
+                ->with('error', 'Kabupaten tidak dapat dihapus karena masih memiliki data stasiun pengamatan.');
+        }
+
+        // 🔍 Cek apakah masih ada data curah hujan
+        if ($regency->districts()->whereHas('villages.stations.rainfallData')->exists()) {
+            return redirect()->route('regencies.index')
+                ->with('error', 'Kabupaten tidak dapat dihapus karena masih memiliki data curah hujan.');
+        }
+
+        // ✅ Jika aman
         $regency->delete();
-        return redirect()->route('regencies.index')->with('success', 'Kabupaten berhasil dihapus!');
+
+        return redirect()->route('regencies.index')
+            ->with('success', 'Kabupaten berhasil dihapus!');
     }
+
 }

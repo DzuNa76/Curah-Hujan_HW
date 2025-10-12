@@ -48,8 +48,6 @@
                                         data-action="{{ route('villages.destroy', $village->id) }}">
                                     <i class="fas fa-trash"></i> Hapus
                                 </button>
-
-                                @include('components.delete-modal')
                             </td>
                         </tr>
                         @endforeach
@@ -58,4 +56,5 @@
             </div>
         </div>
     </div>
+    @include('components.delete-modal')
 @endsection

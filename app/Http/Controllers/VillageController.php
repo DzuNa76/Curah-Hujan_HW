@@ -53,7 +53,23 @@ class VillageController extends Controller
 
     public function destroy(Village $village)
     {
+        // 🔍 Cek apakah masih ada stasiun di desa ini
+        if ($village->stations()->exists()) {
+            return redirect()->route('villages.index')
+                ->with('error', 'Desa tidak dapat dihapus karena masih memiliki data stasiun pengamatan.');
+        }
+
+        // 🔍 Cek apakah masih ada data curah hujan melalui stasiun
+        if ($village->stations()->whereHas('rainfallData')->exists()) {
+            return redirect()->route('villages.index')
+                ->with('error', 'Desa tidak dapat dihapus karena masih memiliki data curah hujan.');
+        }
+
+        // ✅ Jika aman
         $village->delete();
-        return redirect()->route('villages.index')->with('success', 'Desa berhasil dihapus!');
+
+        return redirect()->route('villages.index')
+            ->with('success', 'Desa berhasil dihapus!');
     }
+
 }

@@ -57,7 +57,17 @@ class StationController extends Controller
 
     public function destroy(Station $station)
     {
+        // 🔍 Cek apakah masih ada data curah hujan terkait stasiun ini
+        if ($station->rainfallData()->exists()) {
+            return redirect()->route('stations.index')
+                ->with('error', 'Stasiun tidak dapat dihapus karena masih memiliki data curah hujan.');
+        }
+
+        // ✅ Jika aman
         $station->delete();
-        return redirect()->route('stations.index')->with('success', 'Stasiun berhasil dihapus!');
+
+        return redirect()->route('stations.index')
+            ->with('success', 'Stasiun berhasil dihapus!');
     }
+
 }

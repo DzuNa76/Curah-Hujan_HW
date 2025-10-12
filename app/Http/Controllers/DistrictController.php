@@ -50,7 +50,29 @@ class DistrictController extends Controller
 
     public function destroy(District $district)
     {
+        // 🔍 Cek apakah masih ada desa terkait
+        if ($district->villages()->exists()) {
+            return redirect()->route('districts.index')
+                ->with('error', 'Kecamatan tidak dapat dihapus karena masih memiliki data desa terkait.');
+        }
+
+        // 🔍 Cek apakah masih ada stasiun melalui relasi berlapis
+        if ($district->villages()->whereHas('stations')->exists()) {
+            return redirect()->route('districts.index')
+                ->with('error', 'Kecamatan tidak dapat dihapus karena masih memiliki data stasiun pengamatan.');
+        }
+
+        // 🔍 Cek apakah ada data curah hujan yang terhubung lewat desa → stasiun → rainfall
+        if ($district->villages()->whereHas('stations.rainfallData')->exists()) {
+            return redirect()->route('districts.index')
+                ->with('error', 'Kecamatan tidak dapat dihapus karena masih memiliki data curah hujan.');
+        }
+
+        // ✅ Jika aman, baru hapus
         $district->delete();
-        return redirect()->route('districts.index')->with('success', 'Kecamatan berhasil dihapus!');
+
+        return redirect()->route('districts.index')
+            ->with('success', 'Kecamatan berhasil dihapus!');
     }
+
 }
