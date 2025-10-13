@@ -5,26 +5,39 @@
 @section('content')
 <h1 class="h3 mb-2 text-gray-800">Data Curah Hujan</h1>
 <p class="mb-4">
-    Menampilkan data curah hujan bulanan berdasarkan stasiun pengamatan dan tahun tertentu.
+    Menampilkan data curah hujan bulanan berdasarkan stasiun atau kota, dengan opsi tahun tertentu.
 </p>
 
 @include('components.alert')
 
+{{-- ======================== --}}
+{{-- 🔹 CARD FILTER DAN GRAFIK --}}
+{{-- ======================== --}}
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-            <h6 class="m-0 font-weight-bold text-primary mb-2 mb-md-0">Filter Data</h6>
+            <h6 class="m-0 font-weight-bold text-primary mb-2 mb-md-0">Filter & Grafik</h6>
 
             <form method="GET" action="{{ route('rainfall.index') }}" class="form-inline mb-2 mb-md-0">
                 <div class="form-group mr-2">
+                    <label for="regency_id" class="mr-2">Kota:</label>
+                    <select name="regency_id" id="regency_id" class="form-control">
+                        <option value="all" {{ $selectedRegency == 'all' ? 'selected' : '' }}>🌆 Semua Kota</option>
+                        @foreach ($regencies as $regency)
+                            <option value="{{ $regency->id }}" {{ $selectedRegency == $regency->id ? 'selected' : '' }}>
+                                {{ $regency->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                
+                <div class="form-group mr-2">
                     <label for="station_id" class="mr-2">Stasiun:</label>
                     <select name="station_id" id="station_id" class="form-control">
-                        <option value="all" {{ $selectedStation == 'all' ? 'selected' : '' }}>Semua Stasiun</option>
+                        <option value="all" {{ $selectedStation == 'all' ? 'selected' : '' }}>🌍 Semua Stasiun</option>
                         @foreach ($stations as $station)
                             <option value="{{ $station->id }}" {{ $selectedStation == $station->id ? 'selected' : '' }}>
-                                {{ $station->station_name }} — 
-                                {{ $station->village->name ?? '-' }},
-                                {{ $station->village->district->name ?? '-' }}
+                                {{ $station->station_name }} — {{ $station->village->district->regency->name ?? '-' }}
                             </option>
                         @endforeach
                     </select>
@@ -53,22 +66,30 @@
     </div>
 
     <div class="card-body">
-        {{-- GRAFIK GARIS --}}
-        <div class="mb-4">
-            <h6 class="font-weight-bold text-secondary mb-3">
-                Grafik Rata-Rata Curah Hujan ({{ $selectedYear }})
-            </h6>
-            <canvas id="rainfallChart" height="100"></canvas>
-        </div>
+        <h6 class="font-weight-bold text-secondary mb-3">
+            📈 Grafik Curah Hujan Tahun {{ $selectedYear }}
+        </h6>
+        <canvas id="rainfallChart" height="110"></canvas>
+    </div>
+</div>
 
-        {{-- TABEL DATA --}}
+{{-- ======================== --}}
+{{-- 🔹 CARD TABEL DATA --}}
+{{-- ======================== --}}
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Tabel Data Curah Hujan</h6>
+    </div>
+
+    <div class="card-body">
         <div class="table-responsive">
             <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
                 <thead class="thead-light">
                     <tr>
                         <th>Bulan</th>
                         <th>Stasiun</th>
-                        <th>Lokasi</th>
+                        <th>Kota</th>
+                        <th>Lokasi Lengkap</th>
                         <th>Curah Hujan (mm)</th>
                         <th>Hari Hujan</th>
                         <th class="text-center">Aksi</th>
@@ -79,10 +100,10 @@
                         <tr>
                             <td>{{ \Carbon\Carbon::parse($data->date)->translatedFormat('F Y') }}</td>
                             <td>{{ $data->station->station_name ?? '-' }}</td>
+                            <td>{{ $data->station->village->district->regency->name ?? '-' }}</td>
                             <td>
                                 {{ $data->station->village->name ?? '-' }},
-                                {{ $data->station->village->district->name ?? '-' }},
-                                {{ $data->station->village->district->regency->name ?? '-' }}
+                                {{ $data->station->village->district->name ?? '-' }}
                             </td>
                             <td>{{ number_format($data->rainfall_amount, 2) }}</td>
                             <td>{{ $data->rain_days }}</td>
@@ -99,7 +120,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted">Tidak ada data untuk filter ini.</td>
+                            <td colspan="7" class="text-center text-muted">Tidak ada data untuk filter ini.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -110,49 +131,53 @@
 
 @include('components.delete-modal')
 
-{{-- Chart.js --}}
+{{-- ======================== --}}
+{{-- 🔹 CHART.JS --}}
+{{-- ======================== --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const ctx = document.getElementById('rainfallChart').getContext('2d');
-        const chartData = @json($chartData);
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('rainfallChart').getContext('2d');
+    const chartData = @json($chartData);
 
-        const labels = chartData.map(item => {
-            const bulan = new Date(0, item.month - 1).toLocaleString('id-ID', { month: 'long' });
-            return bulan.charAt(0).toUpperCase() + bulan.slice(1);
-        });
-
-        const values = chartData.map(item => item.avg_rain);
-
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Curah Hujan (mm)',
-                    data: values,
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    fill: true,
-                    tension: 0.3,
-                    borderWidth: 2,
-                    pointRadius: 4,
-                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: { display: true, text: 'Curah Hujan (mm)' }
-                    },
-                    x: {
-                        title: { display: true, text: 'Bulan' }
-                    }
-                }
-            }
-        });
+    // Kelompokkan per kota (regency) atau stasiun tergantung data
+    const grouped = {};
+    chartData.forEach(item => {
+        const key = item.regency_name || item.station_name;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push({ month: item.month, avg_rain: item.avg_rain });
     });
+
+    // Ambil semua bulan (urut)
+    const months = [...new Set(chartData.map(i => i.month))];
+
+    // Buat dataset dinamis
+    const datasets = Object.entries(grouped).map(([label, values], i) => ({
+        label,
+        data: months.map(m => {
+            const found = values.find(v => v.month === m);
+            return found ? found.avg_rain : 0;
+        }),
+        borderColor: `hsl(${i * 45}, 70%, 45%)`,
+        backgroundColor: `hsla(${i * 45}, 70%, 45%, 0.15)`,
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        pointRadius: 3,
+    }));
+
+    new Chart(ctx, {
+        type: 'line',
+        data: { labels: months, datasets },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Curah Hujan (mm)' } },
+                x: { title: { display: true, text: 'Bulan (YYYY-MM)' } }
+            }
+        }
+    });
+});
 </script>
 @endsection
