@@ -5,60 +5,76 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\RainfallData;
 use App\Models\Station;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $stations = Station::with('village.district.regency')->get();
-        $selectedStation = $request->get('station_id');
+        $selectedRegency = $request->get('regency_id', 'all');
 
-        // Base query
-        $baseQuery = RainfallData::with('station.village.district.regency');
-        if ($selectedStation && $selectedStation !== 'all') {
-            $baseQuery->where('station_id', $selectedStation);
+        // Ambil semua kota
+        $regencies = DB::table('regencies')->orderBy('name')->get();
+
+        // Ambil tanggal terbaru dari data
+        $latestDate = DB::table('rainfall_data')->max('date');
+        if (!$latestDate) {
+            // Jika belum ada data, hindari error
+            return view('dashboard.dashboard', [
+                'regencies' => $regencies,
+                'selectedRegency' => $selectedRegency,
+                'chartData' => collect(),
+                'stats' => [
+                    'total_rainfall' => 0,
+                    'total_rain_days' => 0,
+                    'active_stations' => DB::table('stations')->count(),
+                    'total_regencies' => DB::table('regencies')->count(),
+                ],
+            ]);
         }
 
-        // === 📊 Grafik 12 bulan terakhir (terbaru) ===
-        $chartData = DB::table('rainfall_data')
-            ->selectRaw('DATE_FORMAT(date, "%Y-%m") as month, AVG(rainfall_amount) as avg_rain')
-            ->when($selectedStation && $selectedStation !== 'all', function ($query) use ($selectedStation) {
-                $query->where('station_id', $selectedStation);
-            })
-            ->groupBy(DB::raw('DATE_FORMAT(date, "%Y-%m")'))
-            ->orderByDesc(DB::raw('MIN(date)'))
-            ->limit(12)
-            ->get()
-            ->sortBy('month') // urutkan dari Jan -> Des
-            ->values();
+        // Hitung 12 bulan terakhir dari data
+        $latestMonth = Carbon::parse($latestDate);
+        $startDate = $latestMonth->copy()->subMonths(11)->startOfMonth();
+        $endDate   = $latestMonth->copy()->endOfMonth();
 
-        // === 📅 Data tabel (tahun berjalan, urut Jan - Des) ===
-        $currentYear = Carbon::now()->year;
-        $recentData = (clone $baseQuery)
-            ->whereYear('date', $currentYear)
-            ->orderBy('date', 'asc') // urutkan dari Januari ke Desember
+        // === 📊 Grafik Curah Hujan per Kota untuk 12 Bulan Terakhir ===
+        $chartData = DB::table('rainfall_data')
+            ->join('stations', 'rainfall_data.station_id', '=', 'stations.id')
+            ->join('villages', 'stations.village_id', '=', 'villages.id')
+            ->join('districts', 'villages.district_id', '=', 'districts.id')
+            ->join('regencies', 'districts.regency_id', '=', 'regencies.id')
+            ->selectRaw('
+                regencies.name as regency_name,
+                DATE_FORMAT(rainfall_data.date, "%Y-%m") as month,
+                AVG(rainfall_data.rainfall_amount) as avg_rain
+            ')
+            ->when($selectedRegency !== 'all', function ($query) use ($selectedRegency) {
+                $query->where('regencies.id', $selectedRegency);
+            })
+            ->whereBetween('rainfall_data.date', [$startDate, $endDate])
+            ->groupBy('regencies.name', DB::raw('DATE_FORMAT(rainfall_data.date, "%Y-%m")'))
+            ->orderBy(DB::raw('MIN(rainfall_data.date)'), 'asc')
             ->get();
 
-        // === 📈 Statistik ringkas ===
-        $currentMonth = Carbon::now()->format('Y-m');
-        $thisMonthData = (clone $baseQuery)
-            ->where(DB::raw('DATE_FORMAT(date, "%Y-%m")'), $currentMonth)
+        // === 📈 Statistik ringkas (bulan sekarang realtime) ===
+        $now = Carbon::now();
+        $thisMonthData = RainfallData::whereYear('date', $now->year)
+            ->whereMonth('date', $now->month)
             ->get();
 
         $stats = [
             'total_rainfall' => $thisMonthData->sum('rainfall_amount'),
             'total_rain_days' => $thisMonthData->sum('rain_days'),
-            'active_stations' => Station::count(),
+            'active_stations' => DB::table('stations')->count(),
             'total_regencies' => DB::table('regencies')->count(),
         ];
 
         return view('dashboard.dashboard', compact(
-            'stations',
-            'selectedStation',
+            'regencies',
+            'selectedRegency',
             'chartData',
-            'recentData',
             'stats'
         ));
     }

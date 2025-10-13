@@ -3,18 +3,16 @@
 @section('title', 'Dashboard Curah Hujan')
 
 @section('content')
-    <h1 class="h3 mb-4 text-gray-800">Dashboard Peramalan Curah Hujan</h1>
+    <h1 class="h3 mb-4 text-gray-800">Dashboard Curah Hujan Tahunan</h1>
 
-    {{-- Ringkasan Data --}}
+    {{-- 🔹 Ringkasan Statistik --}}
     @include('dashboard.partials.cards', ['stats' => $stats])
 
-    {{-- Grafik Tren --}}
+    {{-- 🔹 Grafik Tren per Kota --}}
     @include('dashboard.partials.trend-chart', [
-        'stations' => $stations,
-        'selectedStation' => $selectedStation,
+        'regencies' => $regencies,
+        'selectedRegency' => $selectedRegency,
         'chartData' => $chartData
     ])
 
-    {{-- Tabel Data Terbaru --}}
-    @include('dashboard.partials.recent-table', ['recentData' => $recentData])
 @endsection
