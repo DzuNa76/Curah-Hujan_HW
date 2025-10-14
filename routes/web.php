@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
     // 📈 Forecasting
     Route::get('/forecasting', [ForecastingController::class, 'index'])->name('forecasting.index');
     Route::post('/forecasting/process', [ForecastingController::class, 'process'])->name('forecasting.process');
+    Route::post('/forecasting/print', [ForecastingController::class, 'print'])->name('forecasting.print');
 
     // =================================================================
     // 🗺️ Master Data Wilayah (Kabupaten, Kecamatan, Desa, Stasiun)

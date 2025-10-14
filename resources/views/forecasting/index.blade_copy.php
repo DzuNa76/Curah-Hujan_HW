@@ -1,4 +1,4 @@
-@extends('layouts.app')
+<!-- @extends('layouts.app')
 
 @section('title', 'Peramalan Curah Hujan')
 
@@ -12,7 +12,7 @@
         <h6 class="m-0 font-weight-bold">Parameter Peramalan</h6>
     </div>
     <div class="card-body">
-        <form method="POST" action="{{ route('forecasting.process') }}" class="row g-3" id="forecastForm">
+        <form method="POST" action="{{ route('forecasting.process') }}" class="row g-3">
             @csrf
 
             {{-- 🔹 Jenis Lokasi --}}
@@ -27,7 +27,7 @@
             {{-- 🔹 Pilih Stasiun --}}
             <div class="col-md-3" id="stationSelect">
                 <label for="station_id">Stasiun</label>
-                <select id="station_id" name="station_id" class="form-control">
+                <select id="station_id" name="id" class="form-control">
                     <option value="all" {{ ($selectedType === 'station' && ($selectedId ?? 'all') === 'all') ? 'selected' : '' }}>Semua Stasiun</option>
                     @if(isset($stations) && $stations->count())
                         @foreach($stations as $st)
@@ -41,9 +41,9 @@
             </div>
 
             {{-- 🔹 Pilih Kota --}}
-            <div class="col-md-3" id="regencySelect" style="display: none;">
+            <div class="col-md-3" id="regencySelect">
                 <label for="regency_id">Kota</label>
-                <select id="regency_id" name="regency_id" class="form-control">
+                <select id="regency_id" name="id" class="form-control">
                     <option value="all" {{ ($selectedType === 'regency' && ($selectedId ?? 'all') === 'all') ? 'selected' : '' }}>Semua Kota</option>
                     @if(isset($regencies) && $regencies->count())
                         @foreach($regencies as $r)
@@ -75,6 +75,7 @@
 
             {{-- 🔹 Rentang Data --}}
             @php
+                // Sort descending agar yang terbaru di atas
                 $sortedDates = isset($allDates) ? collect($allDates)->sortDesc()->values() : collect([]);
                 $defaultEnd = $sortedDates->first() ? \Carbon\Carbon::parse($sortedDates->first())->format('Y-m-d') : null;
             @endphp
@@ -113,26 +114,25 @@
     </div>
 </div>
 
-{{-- Jika ada pesan error/warning tampilkan --}}
-@if(session('error'))
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <i class="fas fa-exclamation-triangle"></i> {{ session('error') }}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
+
+
+{{-- Jika ada pesan (mis. data terlalu sedikit) tampilkan --}}
+@if(isset($message) && $message)
+    <div class="alert alert-warning">
+        {{ $message }}
     </div>
 @endif
 
 {{-- Evaluasi dan Hasil --}}
-@if(isset($mae) && isset($rmse) && is_numeric($mae) && is_numeric($rmse) && isset($message) && !$message)
+@if(!isset($message) || !$message)
     {{-- Evaluasi --}}
     <div class="card shadow mb-4">
         <div class="card-header bg-secondary text-white">
             <h6 class="m-0 font-weight-bold">Evaluasi Peramalan</h6>
         </div>
         <div class="card-body">
-            <p><strong>MAE (Mean Absolute Error):</strong> {{ number_format($mae, 4) }}</p>
-            <p><strong>RMSE (Root Mean Square Error):</strong> {{ number_format($rmse, 4) }}</p>
+            <p><strong>MAE (Mean Absolute Error):</strong> {{ isset($mae) ? number_format($mae,4) : '-' }}</p>
+            <p><strong>RMSE (Root Mean Square Error):</strong> {{ isset($rmse) ? number_format($rmse,4) : '-' }}</p>
         </div>
     </div>
 
@@ -141,7 +141,7 @@
         <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold">Hasil Peramalan</h6>
 
-            {{-- Tombol Cetak --}}
+            {{-- Tombol Cetak (kirim semua array hasil sebagai json) --}}
             <form method="POST" action="{{ route('forecasting.print') }}" target="_blank" class="m-0">
                 @csrf
                 <input type="hidden" name="labels" value="{{ isset($labels) ? htmlentities(json_encode($labels)) : '' }}">
@@ -150,24 +150,9 @@
                 <input type="hidden" name="T" value="{{ isset($T) ? htmlentities(json_encode($T)) : '' }}">
                 <input type="hidden" name="S" value="{{ isset($S) ? htmlentities(json_encode($S)) : '' }}">
                 <input type="hidden" name="F" value="{{ isset($F) ? htmlentities(json_encode($F)) : '' }}">
-                <input type="hidden" name="errorValues" value="{{ isset($errorValues) ? htmlentities(json_encode($errorValues)) : '' }}">
+                <input type="hidden" name="errors" value="{{ isset($errors) ? htmlentities(json_encode($errors)) : '' }}">
                 <input type="hidden" name="mae" value="{{ isset($mae) ? $mae : '' }}">
                 <input type="hidden" name="rmse" value="{{ isset($rmse) ? $rmse : '' }}">
-                <input type="hidden" name="start_date" value="{{ $start ?? '' }}">
-                <input type="hidden" name="end_date" value="{{ $end ?? '' }}">
-                
-                @if(isset($station) && $station)
-                    <input type="hidden" name="station_id" value="{{ $station->id }}">
-                @elseif($selectedType === 'station' && $selectedId !== 'all')
-                    <input type="hidden" name="station_id" value="{{ $selectedId }}">
-                @endif
-
-                @if(isset($regency) && $regency)
-                    <input type="hidden" name="regency_id" value="{{ $regency->id }}">
-                @elseif($selectedType === 'regency' && $selectedId !== 'all')
-                    <input type="hidden" name="regency_id" value="{{ $selectedId }}">
-                @endif
-
                 <button type="submit" class="btn btn-light text-dark btn-sm">
                     <i class="fas fa-print"></i> Cetak Hasil Peramalan
                 </button>
@@ -192,17 +177,17 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @if(isset($labels) && is_array($labels) && count($labels) > 0)
+                        @if(isset($labels) && isset($values))
                             @foreach($labels as $i => $label)
                             <tr>
                                 <td>{{ $label }}</td>
-                                <td class="text-right">{{ $values[$i] !== null ? number_format($values[$i], 2) : '-' }}</td>
+                                <td class="text-right">{{ number_format($values[$i] ?? 0, 2) }}</td>
                                 <td class="text-right">{{ number_format($L[$i] ?? 0, 2) }}</td>
                                 <td class="text-right">{{ number_format($T[$i] ?? 0, 2) }}</td>
                                 <td class="text-right">{{ number_format($S[$i] ?? 0, 2) }}</td>
                                 <td class="text-right">{{ number_format($F[$i] ?? 0, 2) }}</td>
-                                <td class="text-right">{{ $errorValues[$i] !== null ? number_format($errorValues[$i], 2) : '-' }}</td>
-                                <td class="text-right">{{ $errorValues[$i] !== null ? number_format(abs($errorValues[$i]), 2) : '-' }}</td>
+                                <td class="text-right">{{ number_format($errors[$i] ?? 0, 2) }}</td>
+                                <td class="text-right">{{ number_format(abs($errors[$i] ?? 0), 2) }}</td>
                             </tr>
                             @endforeach
                         @else
@@ -222,23 +207,15 @@
 <script>
     // Toggle select visibility (stasiun / regency)
     function toggleLocationSelect(type) {
-        const stationDiv = document.getElementById('stationSelect');
-        const regencyDiv = document.getElementById('regencySelect');
-        
-        if (type === 'regency') {
-            stationDiv.style.display = 'none';
-            regencyDiv.style.display = 'block';
-        } else {
-            stationDiv.style.display = 'block';
-            regencyDiv.style.display = 'none';
-        }
+        document.getElementById('stationSelect').classList.toggle('d-none', type !== 'station');
+        document.getElementById('regencySelect').classList.toggle('d-none', type !== 'regency');
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Set initial visibility
+        // set initial visibility
         toggleLocationSelect("{{ isset($selectedType) ? $selectedType : 'station' }}");
 
-        @if(isset($mae) && isset($rmse) && is_numeric($mae) && is_numeric($rmse) && isset($message) && !$message)
+        @if(!isset($message) || !$message)
             const ctx = document.getElementById('forecastChart').getContext('2d');
             new Chart(ctx, {
                 type: 'line',
@@ -249,66 +226,53 @@
                             label: 'Aktual',
                             data: @json($values ?? []),
                             borderColor: 'rgba(54, 162, 235, 1)',
-                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
                             fill: false,
                             tension: 0.2,
-                            pointRadius: 3,
-                            pointBackgroundColor: 'rgba(54, 162, 235, 1)'
+                            pointRadius: 3
                         },
                         {
                             label: 'Forecast',
                             data: @json($F ?? []),
                             borderColor: 'rgba(255, 99, 132, 1)',
-                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                            borderDash: [5, 5],
+                            borderDash: [5,5],
                             fill: false,
                             tension: 0.2,
-                            pointRadius: 3,
-                            pointBackgroundColor: 'rgba(255, 99, 132, 1)'
+                            pointRadius: 3
                         }
                     ]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
                     interaction: { mode: 'index', intersect: false },
-                    plugins: { 
-                        legend: { position: 'bottom' },
-                        title: { display: true, text: 'Grafik Peramalan Curah Hujan' }
-                    },
+                    plugins: { legend: { position: 'bottom' } },
                     scales: {
-                        y: { 
-                            beginAtZero: true,
-                            ticks: { callback: function(value) { return value.toFixed(2); } },
-                            title: { display: true, text: 'Curah Hujan (mm)' }
-                        },
+                        y: { beginAtZero: true, title: { display: true, text: 'Curah Hujan (mm)' } },
                         x: { title: { display: true, text: 'Bulan - Tahun' } }
                     }
                 }
             });
         @endif
     });
-
-    // Handle form submission - ensure correct field name
-    document.getElementById('forecastForm').addEventListener('submit', function(e) {
-        const type = document.getElementById('type').value;
-        
-        if (type === 'regency') {
-            // Rename regency_id to 'id' before submit
-            const regencySelect = document.getElementById('regency_id');
-            regencySelect.setAttribute('name', 'id');
-            
-            // Disable station field
-            document.getElementById('station_id').disabled = true;
-        } else {
-            // Rename station_id to 'id' before submit
-            const stationSelect = document.getElementById('station_id');
-            stationSelect.setAttribute('name', 'id');
-            
-            // Disable regency field
-            document.getElementById('regency_id').disabled = true;
-        }
-    });
 </script>
 
-@endsection
+{{-- 🔹 Script Toggle Dropdown --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleLocationSelect('{{ $selectedType ?? 'station' }}');
+    });
+    
+    function toggleLocationSelect(type) {
+        const stationDiv = document.getElementById('stationSelect');
+        const regencyDiv = document.getElementById('regencySelect');
+    
+        if (type === 'regency') {
+            regencyDiv.classList.remove('d-none');
+            stationDiv.classList.add('d-none');
+        } else {
+            stationDiv.classList.remove('d-none');
+            regencyDiv.classList.add('d-none');
+        }
+    }
+    </script>
+
+@endsection -->
