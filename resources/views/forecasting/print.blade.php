@@ -75,14 +75,15 @@
         <p><strong>Tanggal Cetak:</strong> {{ $printed_at }}</p>
         <p><strong>Dicetak oleh:</strong> {{ $user }}</p>
 
-        {{-- Jika memakai filter stasiun --}}
+        {{-- Informasi Lokasi --}}
         @if(isset($station) && $station)
             <p><strong>Stasiun:</strong> {{ $station->station_name }}</p>
-            <p><strong>Lokasi:</strong>
-                {{ $station->village->name ?? '-' }},
-                {{ $station->village->district->name ?? '-' }},
-                {{ $station->village->district->regency->name ?? '-' }}
-            </p>
+            <p><strong>Lokasi:</strong></p>
+            <ul>
+                <li><strong>Desa:</strong> {{ $station->village->name ?? '–' }}</li>
+                <li><strong>Kecamatan/Kabupaten:</strong> {{ $station->village->district->name ?? '–' }}</li>
+                <li><strong>Kota:</strong> {{ $station->village->district->regency->name ?? '–' }}</li>
+            </ul>
         @elseif(isset($regency) && $regency)
             <p><strong>Kota / Kabupaten:</strong> {{ $regency->name }}</p>
         @else
