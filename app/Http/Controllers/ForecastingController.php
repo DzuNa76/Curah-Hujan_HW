@@ -37,15 +37,16 @@ class ForecastingController extends Controller
             'values'       => [],
             'labels'       => [],
             'alpha'        => 0.3,
-            'beta'         => 0.01,
-            'gamma'        => 0.2,
+            'beta'         => 0.2,
+            'gamma'        => 0.3,
             'L'            => [],
             'T'            => [],
             'S'            => [],
             'F'            => [],
-            'errorValues'  => [], // 🔹 PERBAIKAN: Konsisten pakai errorValues
-            'mae'          => null, // 🔹 PERBAIKAN: null bukan 0
-            'rmse'         => null, // 🔹 PERBAIKAN: null bukan 0
+            'errors'       => [],
+            'mae'          => 0,
+            'rmse'         => 0,
+            'mape'         => 0,
             'message'      => true,
             'allDates'     => $months,
             'start'        => $start,
@@ -62,7 +63,9 @@ class ForecastingController extends Controller
      */
     public function process(Request $request)
     {
-        // Validasi dasar
+        // ------------------------------
+        // Validasi input
+        // ------------------------------
         $request->validate([
             'alpha' => 'required|numeric|min:0|max:1',
             'beta'  => 'required|numeric|min:0|max:1',
@@ -110,6 +113,7 @@ class ForecastingController extends Controller
                     $data[$key] = (float) $r->rainfall_amount;
                 }
             } else {
+                // Rata-rata semua stasiun
                 $rows = DB::table('rainfall_data')
                     ->selectRaw('DATE_FORMAT(rainfall_data.date, "%Y-%m") as month, AVG(rainfall_data.rainfall_amount) as avg_rain')
                     ->whereBetween('rainfall_data.date', [$start->toDateString(), $end->toDateString()])
@@ -126,7 +130,7 @@ class ForecastingController extends Controller
             if ($id !== 'all') {
                 $regency = Regency::find($id);
                 if (!$regency) {
-                    return back()->withInput()->with('error', 'Kota tidak ditemukan.');
+                    return back()->withInput()->with('error', 'Kabupaten tidak ditemukan.');
                 }
             }
 
@@ -157,56 +161,52 @@ class ForecastingController extends Controller
         }
 
         ksort($data);
-        $labels = array_keys($data);
         $values = array_values($data);
+        $labels = array_keys($data);
+        $m = 12; // panjang musim (L dalam rumus)
+        $n = count($values);
 
         // ========================================
         // VALIDASI MINIMUM DATA
         // ========================================
-        $seasonLength = 12;
-        $n = count($values);
-
-        if ($n < 2 * $seasonLength) {
-            return back()->withInput()->with('error', "Dibutuhkan minimal " . (2 * $seasonLength) . " bulan data (2 musim). Data saat ini: " . $n . " bulan.");
+        if ($n < 2 * $m) {
+            return back()->withInput()->with('error', "Dibutuhkan minimal " . (2 * $m) . " bulan data (2 musim). Data saat ini: " . $n . " bulan.");
         }
 
         // ========================================
-        // INISIALISASI KOMPONEN
+        // INISIALISASI KOMPONEN ADDITIVE
+        // Menggunakan 1 tahun pertama (12 bulan)
         // ========================================
-        $numSeasons = intdiv($n, $seasonLength);
-        $avgMonth = array_fill(0, $seasonLength, 0.0);
 
-        for ($i = 0; $i < $seasonLength; $i++) {
-            $sum = 0.0;
-            for ($s = 0; $s < $numSeasons; $s++) {
-                $sum += $values[$s * $seasonLength + $i];
-            }
-            $avgMonth[$i] = $sum / $numSeasons;
-        }
-
-        $overallMean = array_sum(array_slice($values, 0, $numSeasons * $seasonLength)) / ($numSeasons * $seasonLength);
-
-        $S = array_fill(0, $seasonLength, 0.0);
-        for ($i = 0; $i < $seasonLength; $i++) {
-            $S[$i] = $avgMonth[$i] - $overallMean;
-        }
-
-        $S_sum = array_sum($S);
-        for ($i = 0; $i < $seasonLength; $i++) {
-            $S[$i] -= ($S_sum / $seasonLength);
-        }
-
+        // PERSAMAAN 2.1: Nilai Awal Level
+        // S_L = (1/L) × (X₁ + X₂ + X₃ + ... + X_L)
         $level0 = 0.0;
-        for ($i = 0; $i < $seasonLength; $i++) {
-            $level0 += ($values[$i] - $S[$i]);
+        for ($i = 0; $i < $m; $i++) {
+            $level0 += $values[$i];
         }
-        $level0 /= $seasonLength;
+        $level0 = $level0 / $m;
 
-        $trendSum = 0.0;
-        for ($i = 0; $i < $seasonLength; $i++) {
-            $trendSum += ($values[$seasonLength + $i] - $values[$i]);
+        // PERSAMAAN 2.2: Nilai Awal Trend
+        // T_L = (1/L) × [(X_{L+1} - X₁)/L + (X_{L+2} - X₂)/L + ... + (X_{2L} - X_L)/L]
+        // Atau: T_L = [(sum musim ke-2) - (sum musim ke-1)] / L²
+        $trend_sum = 0.0;
+        for ($i = 0; $i < $m; $i++) {
+            $trend_sum += ($values[$m + $i] - $values[$i]) / $m;
         }
-        $trend0 = $trendSum / ($seasonLength * $seasonLength);
+        $trend0 = $trend_sum / $m;
+
+        // PERSAMAAN 2.3: Nilai Awal Musiman (Additive)
+        // I_t = X_t - S_L, untuk t = 1, 2, ..., L
+        $S = array_fill(0, $m, 0.0);
+        for ($i = 0; $i < $m; $i++) {
+            $S[$i] = $values[$i] - $level0;
+        }
+
+        // Normalisasi agar Σ I_t = 0
+        $S_sum = array_sum($S);
+        for ($i = 0; $i < $m; $i++) {
+            $S[$i] -= ($S_sum / $m);
+        }
 
         // ========================================
         // SMOOTHING
@@ -214,30 +214,47 @@ class ForecastingController extends Controller
         $L = array_fill(0, $n + 12, null);
         $T = array_fill(0, $n + 12, null);
         $F = array_fill(0, $n + 12, null);
-        $errorValues = array_fill(0, $n + 12, null);
+        $errors = array_fill(0, $n + 12, null);
         $S_values = array_fill(0, $n + 12, null);
 
-        for ($t = 0; $t < $seasonLength; $t++) {
+        // Set nilai awal untuk periode 0 sampai m-1
+        for ($t = 0; $t < $m; $t++) {
             $L[$t] = $level0;
             $T[$t] = $trend0;
-            $S_values[$t] = $S[$t % $seasonLength];
+            $S_values[$t] = $S[$t % $m];
         }
 
-        for ($t = $seasonLength; $t < $n; $t++) {
-            $s_idx = $t % $seasonLength;
+        // Iterasi smoothing mulai dari t = m
+        for ($t = $m; $t < $n; $t++) {
+            $s_idx = $t % $m;
 
+            // Forecast (one-step ahead)
             $F[$t] = $L[$t - 1] + $T[$t - 1] + $S[$s_idx];
-            $errorValues[$t] = $values[$t] - $F[$t];
 
+            // Error
+            $errors[$t] = $values[$t] - $F[$t];
+
+            // Simpan nilai seasonal lama (I_{t-L})
             $S_old = $S[$s_idx];
+
+            // PERSAMAAN 2.5: Update Level
+            // S_t = α(X_t - I_{t-L}) + (1 - α)(S_{t-1} + T_{t-1})
             $L[$t] = $alpha * ($values[$t] - $S_old) + (1 - $alpha) * ($L[$t - 1] + $T[$t - 1]);
+
+            // PERSAMAAN 2.6: Update Trend
+            // T_t = β(S_t - S_{t-1}) + (1 - β)T_{t-1}
             $T[$t] = $beta * ($L[$t] - $L[$t - 1]) + (1 - $beta) * $T[$t - 1];
+
+            // PERSAMAAN 2.7: Update Musiman
+            // I_t = γ(X_t - S_t) + (1 - γ)I_{t-1}
             $S[$s_idx] = $gamma * ($values[$t] - $L[$t]) + (1 - $gamma) * $S_old;
+
             $S_values[$t] = $S[$s_idx];
         }
 
         // ========================================
-        // FORECAST 12 BULAN KE DEPAN
+        // PERSAMAAN 2.8: FORECAST KE DEPAN (12 BULAN)
+        // F_{t+m} = S_t + m×T_t + I_{t-L+m}
         // ========================================
         $H = 12;
         $lastL = $L[$n - 1];
@@ -245,7 +262,7 @@ class ForecastingController extends Controller
 
         for ($h = 1; $h <= $H; $h++) {
             $t = $n + $h - 1;
-            $s_idx = $t % $seasonLength;
+            $s_idx = $t % $m;
 
             $forecast = $lastL + $h * $lastT + $S[$s_idx];
             $nextLabel = Carbon::parse($labels[$n - 1] . '-01')->addMonths($h)->format('Y-m');
@@ -256,16 +273,16 @@ class ForecastingController extends Controller
             $T[$t] = $lastT;
             $S_values[$t] = $S[$s_idx];
             $F[$t] = $forecast;
-            $errorValues[$t] = null;
+            $errors[$t] = null;
         }
 
         // ========================================
         // EVALUASI AKURASI
         // ========================================
         $validErrors = [];
-        for ($t = $seasonLength; $t < $n; $t++) {
-            if (!is_null($errorValues[$t])) {
-                $validErrors[] = $errorValues[$t];
+        for ($t = $m; $t < $n; $t++) {
+            if (!is_null($errors[$t])) {
+                $validErrors[] = $errors[$t];
             }
         }
 
@@ -277,6 +294,17 @@ class ForecastingController extends Controller
             ? sqrt(array_sum(array_map(fn($e) => $e * $e, $validErrors)) / count($validErrors))
             : 0;
 
+        $mapeSum = 0;
+        $mapeCount = 0;
+        for ($t = $m; $t < $n; $t++) {
+            if (!is_null($errors[$t]) && $values[$t] != 0) {
+                $mapeSum += abs($errors[$t] / $values[$t]);
+                $mapeCount++;
+            }
+        }
+        $mape = $mapeCount > 0 ? ($mapeSum / $mapeCount) * 100 : 0;
+
+        // Ambil tanggal untuk dropdown
         $allDates = RainfallData::orderBy('date')
             ->get()
             ->map(fn($r) => $r->month_year)
@@ -286,7 +314,7 @@ class ForecastingController extends Controller
             ->toArray();
 
         // ========================================
-        // RETURN VIEW - 🔹 PERBAIKAN: Konsisten pakai errorValues
+        // RETURN VIEW
         // ========================================
         return view('forecasting.index', [
             'values'       => $values,
@@ -298,19 +326,21 @@ class ForecastingController extends Controller
             'T'            => $T,
             'S'            => $S_values,
             'F'            => $F,
-            'errorValues'  => $errorValues, // 🔹 Konsisten
+            'errors'       => $errors,
+            'errorValues'  => $errors, // Alias untuk kompatibilitas view
             'mae'          => round($mae, 2),
             'rmse'         => round($rmse, 2),
+            'mape'         => round($mape, 2),
+            'message'      => false, // Set false agar hasil ditampilkan
             'allDates'     => $allDates,
-            'start'        => $start->toDateString(),
-            'end'          => $end->toDateString(),
+            'start'        => $request->start,
+            'end'          => $request->end,
             'stations'     => $stations,
             'regencies'    => $regencies,
             'selectedType' => $type,
             'selectedId'   => $id,
             'station'      => $station,
             'regency'      => $regency,
-            'message'      => false, // 🔹 Set false setelah proses
         ]);
     }
 
@@ -325,6 +355,7 @@ class ForecastingController extends Controller
             'F'      => 'required',
             'mae'    => 'nullable',
             'rmse'   => 'nullable',
+            'mape'   => 'nullable',
             'start_date' => 'nullable|date',
             'end_date'   => 'nullable|date',
             'station_id' => 'nullable',
@@ -337,10 +368,11 @@ class ForecastingController extends Controller
         $L      = json_decode(html_entity_decode($request->L ?? '[]'), true);
         $T      = json_decode(html_entity_decode($request->T ?? '[]'), true);
         $S      = json_decode(html_entity_decode($request->S ?? '[]'), true);
-        $errorValues = json_decode(html_entity_decode($request->errorValues ?? '[]'), true); // 🔹 PERBAIKAN
+        $errors = json_decode(html_entity_decode($request->errorValues ?? $request->errors ?? '[]'), true);
 
         $mae = $request->mae ?? null;
         $rmse = $request->rmse ?? null;
+        $mape = $request->mape ?? null;
 
         $start_date = $request->start_date ?? null;
         $end_date = $request->end_date ?? null;
@@ -364,9 +396,10 @@ class ForecastingController extends Controller
             'L' => $L,
             'T' => $T,
             'S' => $S,
-            'errorValues' => $errorValues, // 🔹 Konsisten
+            'errors' => $errors,
             'mae' => $mae,
             'rmse' => $rmse,
+            'mape' => $mape,
             'user' => $user,
             'printed_at' => $printed_at,
             'station' => $station,

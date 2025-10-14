@@ -70,7 +70,7 @@
             <div class="col-md-2">
                 <label for="gamma">Gamma (γ)</label>
                 <input type="number" step="0.01" min="0" max="1" name="gamma" id="gamma"
-                    value="{{ old('gamma', $gamma ?? '0.1') }}" class="form-control" required>
+                    value="{{ old('gamma', $gamma ?? '0.3') }}" class="form-control" required>
             </div>
 
             {{-- 🔹 Rentang Data --}}
@@ -123,16 +123,22 @@
     </div>
 @endif
 
-{{-- Evaluasi dan Hasil --}}
-@if(isset($mae) && isset($rmse) && is_numeric($mae) && is_numeric($rmse) && isset($message) && !$message)
+{{-- 🔹 PERBAIKAN: Kondisi tampil hasil yang benar --}}
+@if(!empty($labels) && count($labels) > 0 && isset($mae) && isset($rmse))
     {{-- Evaluasi --}}
     <div class="card shadow mb-4">
         <div class="card-header bg-secondary text-white">
             <h6 class="m-0 font-weight-bold">Evaluasi Peramalan</h6>
         </div>
         <div class="card-body">
-            <p><strong>MAE (Mean Absolute Error):</strong> {{ number_format($mae, 4) }}</p>
-            <p><strong>RMSE (Root Mean Square Error):</strong> {{ number_format($rmse, 4) }}</p>
+            <div class="row">
+                <div class="col-md-4">
+                    <p><strong>MAE (Mean Absolute Error):</strong> {{ number_format($mae, 4) }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>RMSE (Root Mean Square Error):</strong> {{ number_format($rmse, 4) }}</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -150,21 +156,22 @@
                 <input type="hidden" name="T" value="{{ isset($T) ? htmlentities(json_encode($T)) : '' }}">
                 <input type="hidden" name="S" value="{{ isset($S) ? htmlentities(json_encode($S)) : '' }}">
                 <input type="hidden" name="F" value="{{ isset($F) ? htmlentities(json_encode($F)) : '' }}">
-                <input type="hidden" name="errorValues" value="{{ isset($errorValues) ? htmlentities(json_encode($errorValues)) : '' }}">
+                <input type="hidden" name="errorValues" value="{{ isset($errors) ? htmlentities(json_encode($errors)) : (isset($errorValues) ? htmlentities(json_encode($errorValues)) : '') }}">
                 <input type="hidden" name="mae" value="{{ isset($mae) ? $mae : '' }}">
                 <input type="hidden" name="rmse" value="{{ isset($rmse) ? $rmse : '' }}">
+                <input type="hidden" name="mape" value="{{ isset($mape) ? $mape : '' }}">
                 <input type="hidden" name="start_date" value="{{ $start ?? '' }}">
                 <input type="hidden" name="end_date" value="{{ $end ?? '' }}">
                 
                 @if(isset($station) && $station)
                     <input type="hidden" name="station_id" value="{{ $station->id }}">
-                @elseif($selectedType === 'station' && $selectedId !== 'all')
+                @elseif(isset($selectedType) && $selectedType === 'station' && isset($selectedId) && $selectedId !== 'all')
                     <input type="hidden" name="station_id" value="{{ $selectedId }}">
                 @endif
 
                 @if(isset($regency) && $regency)
                     <input type="hidden" name="regency_id" value="{{ $regency->id }}">
-                @elseif($selectedType === 'regency' && $selectedId !== 'all')
+                @elseif(isset($selectedType) && $selectedType === 'regency' && isset($selectedId) && $selectedId !== 'all')
                     <input type="hidden" name="regency_id" value="{{ $selectedId }}">
                 @endif
 
@@ -178,38 +185,35 @@
             <canvas id="forecastChart" height="120"></canvas>
 
             <div class="table-responsive mt-4">
-                <table class="table table-bordered">
+                <table class="table table-bordered table-sm">
                     <thead class="table-light">
                         <tr class="text-center">
                             <th>Bulan - Tahun</th>
                             <th>Aktual</th>
-                            <th>Level</th>
-                            <th>Tren</th>
-                            <th>Seasonal</th>
-                            <th>Forecast</th>
-                            <th>Error</th>
-                            <th>Absolut Error</th>
+                            <th>Level (L)</th>
+                            <th>Tren (T)</th>
+                            <th>Seasonal (S)</th>
+                            <th>Forecast (F)</th>
+                            <th>Error (e)</th>
+                            <th>|Error|</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @if(isset($labels) && is_array($labels) && count($labels) > 0)
-                            @foreach($labels as $i => $label)
-                            <tr>
-                                <td>{{ $label }}</td>
-                                <td class="text-right">{{ $values[$i] !== null ? number_format($values[$i], 2) : '-' }}</td>
-                                <td class="text-right">{{ number_format($L[$i] ?? 0, 2) }}</td>
-                                <td class="text-right">{{ number_format($T[$i] ?? 0, 2) }}</td>
-                                <td class="text-right">{{ number_format($S[$i] ?? 0, 2) }}</td>
-                                <td class="text-right">{{ number_format($F[$i] ?? 0, 2) }}</td>
-                                <td class="text-right">{{ $errorValues[$i] !== null ? number_format($errorValues[$i], 2) : '-' }}</td>
-                                <td class="text-right">{{ $errorValues[$i] !== null ? number_format(abs($errorValues[$i]), 2) : '-' }}</td>
-                            </tr>
-                            @endforeach
-                        @else
-                            <tr>
-                                <td colspan="8" class="text-center text-muted">Tidak ada hasil peramalan.</td>
-                            </tr>
-                        @endif
+                        @php
+                            $errorData = $errors ?? $errorValues ?? [];
+                        @endphp
+                        @foreach($labels as $i => $label)
+                        <tr>
+                            <td>{{ $label }}</td>
+                            <td class="text-right">{{ $values[$i] !== null ? number_format($values[$i], 2) : '-' }}</td>
+                            <td class="text-right">{{ isset($L[$i]) ? number_format($L[$i], 2) : '-' }}</td>
+                            <td class="text-right">{{ isset($T[$i]) ? number_format($T[$i], 2) : '-' }}</td>
+                            <td class="text-right">{{ isset($S[$i]) ? number_format($S[$i], 2) : '-' }}</td>
+                            <td class="text-right">{{ isset($F[$i]) ? number_format($F[$i], 2) : '-' }}</td>
+                            <td class="text-right">{{ isset($errorData[$i]) && $errorData[$i] !== null ? number_format($errorData[$i], 2) : '-' }}</td>
+                            <td class="text-right">{{ isset($errorData[$i]) && $errorData[$i] !== null ? number_format(abs($errorData[$i]), 2) : '-' }}</td>
+                        </tr>
+                        @endforeach
                     </tbody>
                 </table>
             </div>
@@ -236,9 +240,10 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         // Set initial visibility
-        toggleLocationSelect("{{ isset($selectedType) ? $selectedType : 'station' }}");
+        toggleLocationSelect("{{ $selectedType ?? 'station' }}");
 
-        @if(isset($mae) && isset($rmse) && is_numeric($mae) && is_numeric($rmse) && isset($message) && !$message)
+        // 🔹 PERBAIKAN: Render chart jika ada data
+        @if(!empty($labels) && count($labels) > 0 && isset($mae) && isset($rmse))
             const ctx = document.getElementById('forecastChart').getContext('2d');
             new Chart(ctx, {
                 type: 'line',
