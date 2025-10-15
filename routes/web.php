@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('districts', DistrictController::class)->names('districts');
         Route::resource('villages', VillageController::class)->names('villages');
         Route::resource('stations', StationController::class)->names('stations');
+        Route::get('stations/{station}/print', [StationController::class, 'print'])->name('stations.print');
     });
 
     // 👤 User Management (Admin Only)

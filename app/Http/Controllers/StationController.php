@@ -70,4 +70,18 @@ class StationController extends Controller
             ->with('success', 'Stasiun berhasil dihapus!');
     }
 
+    public function print(Station $station)
+    {
+        // Ambil seluruh data curah hujan terkait stasiun, urut per tanggal
+        $rainfalls = $station->rainfallData()
+            ->with('station.village.district.regency')
+            ->orderBy('date', 'asc')
+            ->get();
+
+        return view('stations.print', [
+            'station' => $station->load('village.district.regency'),
+            'rainfalls' => $rainfalls,
+        ]);
+    }
+
 }

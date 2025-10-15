@@ -44,6 +44,9 @@
                                 <a href="{{ route('stations.edit', $station->id) }}" class="btn btn-warning btn-sm">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
+                                {{-- <a href="{{ route('stations.print', $station->id) }}" target="_blank" class="btn btn-info btn-sm">
+                                    <i class="fas fa-print"></i> Cetak Data
+                                </a> --}}
 
                                 <button type="button" class="btn btn-danger btn-sm btn-delete"
                                         data-action="{{ route('stations.destroy', $station->id) }}">
