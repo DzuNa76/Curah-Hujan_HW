@@ -138,9 +138,6 @@
                 <div class="col-md-4">
                     <p><strong>RMSE (Root Mean Square Error):</strong> {{ number_format($rmse, 4) }}</p>
                 </div>
-                <div class="col-md-4">
-                    <p><strong>MAPE :</strong> {{ number_format($mape, 4) }}</p>
-                </div>
             </div>
         </div>
     </div>
