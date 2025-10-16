@@ -42,24 +42,24 @@
                                     @enderror
                                 </div>
 
-                                <div class="form-group mb-4">
+                                {{-- <div class="form-group mb-4">
                                     <div class="custom-control custom-checkbox small">
                                         <input type="checkbox" class="custom-control-input" id="remember" name="remember">
                                         <label class="custom-control-label" for="remember">Remember Me</label>
                                     </div>
-                                </div>
+                                </div> --}}
 
                                 <button type="submit" class="btn btn-primary btn-user btn-block">
                                     Login
                                 </button>
                             </form>
                             <hr>
-                            <div class="text-center">
+                            {{-- <div class="text-center">
                                 <a class="small" href="{{ route('password.request') }}">Forgot Password?</a>
-                            </div>
-                            <div class="text-center">
+                            </div> --}}
+                            {{-- <div class="text-center">
                                 <a class="small" href="{{ route('register') }}">Create an Account!</a>
-                            </div>
+                            </div> --}}
                         </div>
                     </div>
                 </div>
