@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -81,5 +82,33 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()->route('users.index')->with('success', 'User berhasil dihapus');
+    }
+
+    // ✅ Form edit profile user sendiri
+    public function editProfile()
+    {
+        $user = Auth::user();
+        return view('profile.edit', compact('user'));
+    }
+
+    // ✅ Update profile user sendiri
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:6|confirmed',
+        ]);
+
+        // Update data user menggunakan User model
+        User::where('id', $user->id)->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => $request->filled('password') ? Hash::make($request->password) : $user->password,
+        ]);
+
+        return redirect()->route('profile.edit')->with('success', 'Profile berhasil diperbarui');
     }
 }

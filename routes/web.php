@@ -67,6 +67,12 @@ Route::middleware('auth')->group(function () {
         Route::get('stations/{station}/print', [StationController::class, 'print'])->name('stations.print');
     });
 
+    // 👤 Edit Profil Pribadi (User bisa akses sendiri)
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [UserController::class, 'editProfile'])->name('edit');
+        Route::put('/', [UserController::class, 'updateProfile'])->name('update');
+    });
+
     // 👤 User Management (Admin Only)
     Route::middleware('role:admin')->group(function () {
         Route::resource('users', UserController::class);
