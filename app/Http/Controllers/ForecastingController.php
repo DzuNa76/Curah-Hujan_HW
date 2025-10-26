@@ -36,9 +36,9 @@ class ForecastingController extends Controller
         return view('forecasting.index', [
             'values'       => [],
             'labels'       => [],
-            'alpha'        => 0.3,
-            'beta'         => 0.2,
-            'gamma'        => 0.3,
+            'alpha'        => $request->old('alpha', 0.3),
+            'beta'         => $request->old('beta', 0.2),
+            'gamma'        => $request->old('gamma', 0.3),
             'L'            => [],
             'T'            => [],
             'S'            => [],
@@ -49,12 +49,12 @@ class ForecastingController extends Controller
             'mape'         => 0,
             'message'      => true,
             'allDates'     => $months,
-            'start'        => $start,
-            'end'          => $end,
+            'start'        => $request->old('start', $start),
+            'end'          => $request->old('end', $end),
             'stations'     => $stations,
             'regencies'    => $regencies,
-            'selectedType' => $request->get('type', 'station'),
-            'selectedId'   => $request->get('id', 'all'),
+            'selectedType' => $request->old('type', $request->get('type', 'station')),
+            'selectedId'   => $request->old('id', $request->get('id', 'all')),
         ]);
     }
 
@@ -100,7 +100,10 @@ class ForecastingController extends Controller
             if ($id !== 'all') {
                 $station = Station::with('village.district.regency')->find($id);
                 if (!$station) {
-                    return back()->withInput()->with('error', 'Stasiun tidak ditemukan.');
+                    return redirect()->route('forecasting.index', [
+                        'type' => $type,
+                        'id' => $id
+                    ])->withInput()->with('error', 'Stasiun tidak ditemukan.');
                 }
 
                 $rows = RainfallData::where('station_id', $id)
@@ -130,7 +133,10 @@ class ForecastingController extends Controller
             if ($id !== 'all') {
                 $regency = Regency::find($id);
                 if (!$regency) {
-                    return back()->withInput()->with('error', 'Kabupaten tidak ditemukan.');
+                    return redirect()->route('forecasting.index', [
+                        'type' => $type,
+                        'id' => $id
+                    ])->withInput()->with('error', 'Kabupaten tidak ditemukan.');
                 }
             }
 
@@ -157,7 +163,10 @@ class ForecastingController extends Controller
 
         // Cek data kosong
         if (empty($data)) {
-            return back()->withInput()->with('error', 'Tidak ada data curah hujan pada rentang waktu yang dipilih.');
+            return redirect()->route('forecasting.index', [
+                'type' => $type,
+                'id' => $id
+            ])->withInput()->with('error', 'Tidak ada data curah hujan pada rentang waktu yang dipilih.');
         }
 
         ksort($data);
@@ -170,7 +179,10 @@ class ForecastingController extends Controller
         // VALIDASI MINIMUM DATA
         // ========================================
         if ($n < 2 * $m) {
-            return back()->withInput()->with('error', "Dibutuhkan minimal " . (2 * $m) . " bulan data (2 musim). Data saat ini: " . $n . " bulan.");
+            return redirect()->route('forecasting.index', [
+                'type' => $type,
+                'id' => $id
+            ])->withInput()->with('error', "Dibutuhkan minimal " . (2 * $m) . " bulan data (2 musim). Data saat ini: " . $n . " bulan.");
         }
 
         // ========================================
