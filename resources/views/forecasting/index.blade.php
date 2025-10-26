@@ -242,7 +242,37 @@
         // Set initial visibility
         toggleLocationSelect("{{ $selectedType ?? 'station' }}");
 
-        // 🔹 PERBAIKAN: Render chart jika ada data
+        const form = document.getElementById('forecastForm');
+        const typeSelect = document.getElementById('type');
+        const regencySelect = document.getElementById('regency_id');
+        const stationSelect = document.getElementById('station_id');
+        const startSelect = document.getElementById('start');
+        const endSelect = document.getElementById('end');
+
+        // --- 🔹 Reset sessionStorage jika user datang dari halaman lain ---
+        const navEntries = performance.getEntriesByType('navigation');
+        const navType = navEntries.length > 0 ? navEntries[0].type : null;
+        // Jika navigation type adalah 'navigate' (halaman baru, bukan reload/back-forward)
+        if (navType === 'navigate' || navType === 'reload') {
+            sessionStorage.removeItem('forecast_start');
+            sessionStorage.removeItem('forecast_end');
+        }
+
+        // --- 🔹 Simpan pilihan start & end selama halaman aktif ---
+        startSelect.addEventListener('change', () => {
+            sessionStorage.setItem('forecast_start', startSelect.value);
+        });
+        endSelect.addEventListener('change', () => {
+            sessionStorage.setItem('forecast_end', endSelect.value);
+        });
+
+        // Kembalikan nilai sebelumnya jika halaman direload
+        const savedStart = sessionStorage.getItem('forecast_start');
+        const savedEnd = sessionStorage.getItem('forecast_end');
+        if (savedStart) startSelect.value = savedStart;
+        if (savedEnd) endSelect.value = savedEnd;
+
+        // --- 🔹 Render chart jika ada data ---
         @if(!empty($labels) && count($labels) > 0 && isset($mae) && isset($rmse))
             const ctx = document.getElementById('forecastChart').getContext('2d');
             new Chart(ctx, {
@@ -292,27 +322,25 @@
                 }
             });
         @endif
-    });
 
-    // Handle form submission - ensure correct field name
-    document.getElementById('forecastForm').addEventListener('submit', function(e) {
-        const type = document.getElementById('type').value;
-        
-        if (type === 'regency') {
-            // Rename regency_id to 'id' before submit
-            const regencySelect = document.getElementById('regency_id');
-            regencySelect.setAttribute('name', 'id');
-            
-            // Disable station field
-            document.getElementById('station_id').disabled = true;
-        } else {
-            // Rename station_id to 'id' before submit
-            const stationSelect = document.getElementById('station_id');
-            stationSelect.setAttribute('name', 'id');
-            
-            // Disable regency field
-            document.getElementById('regency_id').disabled = true;
-        }
+        // --- 🔹 Handle form submission ---
+        form.addEventListener('submit', function(e) {
+            const type = typeSelect.value;
+
+            if (type === 'regency') {
+                regencySelect.setAttribute('name', 'id');
+                regencySelect.disabled = false;
+                stationSelect.disabled = true;
+            } else {
+                stationSelect.setAttribute('name', 'id');
+                stationSelect.disabled = false;
+                regencySelect.disabled = true;
+            }
+
+            // Simpan rentang terakhir selama halaman aktif
+            sessionStorage.setItem('forecast_start', startSelect.value);
+            sessionStorage.setItem('forecast_end', endSelect.value);
+        });
     });
 </script>
 
