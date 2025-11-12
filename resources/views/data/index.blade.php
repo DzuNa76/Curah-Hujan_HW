@@ -155,7 +155,7 @@
             @endif
 
             {{-- Penjelasan dan Call to Action --}}
-            <div class="alert alert-info">
+            {{-- <div class="alert alert-info">
                 <h6 class="font-weight-bold"><i class="fas fa-info-circle mr-2"></i>Mengapa Data Harus Lengkap?</h6>
                 <p class="mb-2">
                     Sistem memeriksa kelengkapan data dari awal tahun {{ $selectedYear }} sampai bulan saat ini ({{ \Carbon\Carbon::parse($missingDataInfo['current_month'] . '-01')->translatedFormat('F Y') }}). 
@@ -166,13 +166,88 @@
                     <li>Kesalahan dalam perhitungan forecasting</li>
                     <li>Hasil prediksi yang tidak reliable untuk pengambilan keputusan</li>
                 </ul>
-            </div>
+            </div> --}}
+
+            {{-- Tabel Detail Stasiun dengan Missing Data (untuk filter semua stasiun) --}}
+            @if(isset($stationsDetail) && !empty($stationsDetail) && ($selectedStation === 'all'))
+                <div class="mb-4">
+                    <h6 class="font-weight-bold mb-3">
+                        <i class="fas fa-list-alt mr-2"></i>Detail Stasiun dengan Data Missing:
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Stasiun</th>
+                                    <th>Kabupaten</th>
+                                    <th>Kecamatan</th>
+                                    <th>Desa</th>
+                                    <th class="text-center">Data Tersedia</th>
+                                    <th class="text-center">Data Diharapkan</th>
+                                    <th class="text-center">Data Missing</th>
+                                    <th class="text-center">Kelengkapan</th>
+                                    <th>Bulan yang Missing</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($stationsDetail as $index => $station)
+                                    <tr>
+                                        <td>{{ $index + 1 }}</td>
+                                        <td><strong>{{ $station['station_name'] }}</strong></td>
+                                        <td>{{ $station['regency_name'] }}</td>
+                                        <td>{{ $station['district_name'] }}</td>
+                                        <td>{{ $station['village_name'] }}</td>
+                                        <td class="text-center">
+                                            <span class="badge badge-info">{{ $station['data_count'] }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-primary">{{ $station['expected_count'] }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-danger">{{ $station['missing_count'] }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-{{ $station['completeness_ratio'] >= 100 ? 'success' : ($station['completeness_ratio'] >= 80 ? 'warning' : 'danger') }}">
+                                                {{ $station['completeness_ratio'] }}%
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-wrap" style="gap: 0.25rem;">
+                                                @foreach(array_slice($station['missing_months'], 0, 6) as $month)
+                                                    <span class="badge badge-danger badge-sm" style="font-size: 0.75rem;">
+                                                        {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('M Y') }}
+                                                    </span>
+                                                @endforeach
+                                                @if(count($station['missing_months']) > 6)
+                                                    <span class="badge badge-secondary badge-sm" style="font-size: 0.75rem;">
+                                                        +{{ count($station['missing_months']) - 6 }} lainnya
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-info mt-3 mb-0">
+                        <small>
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Menampilkan {{ count($stationsDetail) }} stasiun yang memiliki data missing dari total stasiun yang dianalisis.
+                        </small>
+                    </div>
+                </div>
+            @endif
 
             <div class="alert alert-warning">
                 <h6 class="font-weight-bold"><i class="fas fa-tasks mr-2"></i>Tindakan yang Diperlukan:</h6>
                 <ol class="mb-0">
                     <li>Gunakan tombol <strong>"Tambah Data"</strong> di atas untuk menambahkan data yang hilang</li>
                     <li>Lengkapi data curah hujan untuk bulan-bulan yang missing (ditandai dengan badge merah di atas)</li>
+                    @if(isset($stationsDetail) && !empty($stationsDetail))
+                        <li>Perhatikan tabel detail stasiun di atas untuk mengetahui stasiun mana yang perlu dilengkapi datanya</li>
+                    @endif
                     <li>Pastikan semua bulan dari {{ \Carbon\Carbon::parse($missingDataInfo['start_month'] . '-01')->translatedFormat('F Y') }} sampai {{ \Carbon\Carbon::parse($missingDataInfo['end_month'] . '-01')->translatedFormat('F Y') }} memiliki data</li>
                     <li>Setelah data lengkap, sistem akan otomatis memperbarui status kelengkapan</li>
                 </ol>

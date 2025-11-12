@@ -207,6 +207,81 @@
                     </div>
                 @endif
 
+                {{-- Tabel Detail Stasiun dengan Missing Data (untuk filter semua stasiun) --}}
+                @if(session('stations_detail') && !empty(session('stations_detail')))
+                    @php
+                        $stationsDetail = session('stations_detail');
+                    @endphp
+                    <div class="mb-4">
+                        <h6 class="font-weight-bold mb-3">
+                            <i class="fas fa-list-alt mr-2"></i>Detail Stasiun dengan Data Missing:
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Nama Stasiun</th>
+                                        <th>Kabupaten</th>
+                                        <th>Kecamatan</th>
+                                        <th>Desa</th>
+                                        <th class="text-center">Data Tersedia</th>
+                                        <th class="text-center">Data Diharapkan</th>
+                                        <th class="text-center">Data Missing</th>
+                                        <th class="text-center">Kelengkapan</th>
+                                        <th>Bulan yang Missing</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($stationsDetail as $index => $station)
+                                        <tr>
+                                            <td>{{ $index + 1 }}</td>
+                                            <td><strong>{{ $station['station_name'] }}</strong></td>
+                                            <td>{{ $station['regency_name'] }}</td>
+                                            <td>{{ $station['district_name'] }}</td>
+                                            <td>{{ $station['village_name'] }}</td>
+                                            <td class="text-center">
+                                                <span class="badge badge-info">{{ $station['data_count'] }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge badge-primary">{{ $station['expected_count'] }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge badge-danger">{{ $station['missing_count'] }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge badge-{{ $station['completeness_ratio'] >= 100 ? 'success' : ($station['completeness_ratio'] >= 80 ? 'warning' : 'danger') }}">
+                                                    {{ $station['completeness_ratio'] }}%
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-wrap" style="gap: 0.25rem;">
+                                                    @foreach(array_slice($station['missing_months'], 0, 6) as $month)
+                                                        <span class="badge badge-danger badge-sm" style="font-size: 0.75rem;">
+                                                            {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('M Y') }}
+                                                        </span>
+                                                    @endforeach
+                                                    @if(count($station['missing_months']) > 6)
+                                                        <span class="badge badge-secondary badge-sm" style="font-size: 0.75rem;">
+                                                            +{{ count($station['missing_months']) - 6 }} lainnya
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="alert alert-info mt-3 mb-0">
+                            <small>
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Menampilkan {{ count($stationsDetail) }} stasiun yang memiliki data missing dari total stasiun yang dianalisis.
+                            </small>
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Penjelasan dan Call to Action --}}
                 <div class="alert alert-info">
                     <h6 class="font-weight-bold"><i class="fas fa-info-circle mr-2"></i>Mengapa Data Harus Lengkap?</h6>
@@ -226,6 +301,9 @@
                     <ol class="mb-0">
                         <li>Buka menu <strong>Data Curah Hujan</strong> di sidebar</li>
                         <li>Lengkapi data curah hujan untuk bulan-bulan yang missing (ditandai dengan badge merah di atas)</li>
+                        @if(session('stations_detail') && !empty(session('stations_detail')))
+                            <li>Perhatikan tabel detail stasiun di atas untuk mengetahui stasiun mana yang perlu dilengkapi datanya</li>
+                        @endif
                         <li>Pastikan semua bulan dalam rentang yang dipilih memiliki data</li>
                         <li>Kembali ke halaman ini dan coba proses forecasting lagi</li>
                     </ol>
@@ -602,26 +680,26 @@
             
             // Siapkan datasets
             const datasets = [
-                {
-                    label: 'Aktual',
-                    data: @json($values ?? []),
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                    fill: false,
-                    tension: 0.2,
-                    pointRadius: 3,
+                        {
+                            label: 'Aktual',
+                            data: @json($values ?? []),
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            fill: false,
+                            tension: 0.2,
+                            pointRadius: 3,
                     pointBackgroundColor: 'rgba(54, 162, 235, 1)',
                     pointHoverRadius: 5
-                },
-                {
-                    label: 'Forecast',
-                    data: @json($F ?? []),
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                    borderDash: [5, 5],
-                    fill: false,
-                    tension: 0.2,
-                    pointRadius: 3,
+                        },
+                        {
+                            label: 'Forecast',
+                            data: @json($F ?? []),
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.2,
+                            pointRadius: 3,
                     pointBackgroundColor: 'rgba(255, 99, 132, 1)',
                     pointHoverRadius: 5
                 }

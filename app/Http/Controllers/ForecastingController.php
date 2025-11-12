@@ -65,6 +65,71 @@ class ForecastingController extends Controller
     }
 
     /**
+     * Deteksi missing data per stasiun untuk forecasting
+     * 
+     * @param array $stationIds Array ID stasiun
+     * @param Carbon $start Tanggal mulai
+     * @param Carbon $end Tanggal akhir
+     * @return array Detail missing data per stasiun
+     */
+    private function detectMissingDataPerStation(array $stationIds, Carbon $start, Carbon $end): array
+    {
+        // Generate semua bulan yang diharapkan dalam rentang
+        $expectedMonths = [];
+        $current = $start->copy();
+        while ($current->lte($end)) {
+            $expectedMonths[] = $current->format('Y-m');
+            $current->addMonth();
+        }
+
+        $stationsDetail = [];
+        
+        foreach ($stationIds as $stationId) {
+            $station = Station::with('village.district.regency')->find($stationId);
+            if (!$station) continue;
+
+            // Ambil bulan yang tersedia untuk stasiun ini dalam rentang
+            $stationMonths = RainfallData::where('station_id', $stationId)
+                ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                ->orderBy('date', 'asc')
+                ->get()
+                ->map(fn($r) => Carbon::parse($r->date)->format('Y-m'))
+                ->unique()
+                ->values()
+                ->toArray();
+
+            // Identifikasi bulan yang missing
+            $missingMonths = [];
+            foreach ($expectedMonths as $month) {
+                if (!in_array($month, $stationMonths)) {
+                    $missingMonths[] = $month;
+                }
+            }
+
+            if (count($missingMonths) > 0) {
+                $completenessRatio = count($expectedMonths) > 0 
+                    ? round(((count($expectedMonths) - count($missingMonths)) / count($expectedMonths)) * 100, 2) 
+                    : 0;
+
+                $stationsDetail[] = [
+                    'station_id' => $station->id,
+                    'station_name' => $station->station_name,
+                    'regency_name' => $station->village->district->regency->name ?? 'N/A',
+                    'district_name' => $station->village->district->name ?? 'N/A',
+                    'village_name' => $station->village->name ?? 'N/A',
+                    'data_count' => count($stationMonths),
+                    'expected_count' => count($expectedMonths),
+                    'missing_count' => count($missingMonths),
+                    'missing_months' => $missingMonths,
+                    'completeness_ratio' => $completenessRatio,
+                ];
+            }
+        }
+
+        return $stationsDetail;
+    }
+
+    /**
      * Validasi konsistensi data antar stasiun dalam kabupaten
      * 
      * @param int|null $regencyId ID kabupaten (null untuk semua kabupaten)
@@ -499,13 +564,37 @@ class ForecastingController extends Controller
         // ========================================
         $completenessValidation = $this->validateDataCompleteness($start, $end, $data);
         
+        // Deteksi missing data per stasiun untuk kasus "semua stasiun"
+        $stationsDetail = null;
         if (!$completenessValidation['is_complete']) {
+            // Jika filter adalah "semua stasiun" atau "kota tertentu/semua stasiun", ambil detail per stasiun
+            if ($type === 'station' && $id === 'all') {
+                // Semua stasiun
+                $allStationIds = Station::pluck('id')->toArray();
+                if (!empty($allStationIds)) {
+                    $stationsDetail = $this->detectMissingDataPerStation($allStationIds, $start, $end);
+                }
+            } elseif ($type === 'regency') {
+                // Kota tertentu dengan semua stasiun
+                $regencyId = ($id !== 'all') ? (int) $id : null;
+                $regencyStations = Station::whereHas('village.district.regency', function ($q) use ($regencyId) {
+                    if ($regencyId !== null) {
+                        $q->where('id', $regencyId);
+                    }
+                })->pluck('id')->toArray();
+                
+                if (!empty($regencyStations)) {
+                    $stationsDetail = $this->detectMissingDataPerStation($regencyStations, $start, $end);
+                }
+            }
+            
             // Simpan data validasi untuk ditampilkan di view
             return redirect()->route('forecasting.index', [
                 'type' => $type,
                 'id' => $id
             ])->withInput()
               ->with('validation_error', $completenessValidation)
+              ->with('stations_detail', $stationsDetail)
               ->with('error', 'Data tidak lengkap! Proses peramalan dihentikan.');
         }
 

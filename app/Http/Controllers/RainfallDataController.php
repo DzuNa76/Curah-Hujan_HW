@@ -12,6 +12,83 @@ use Carbon\Carbon;
 class RainfallDataController extends Controller
 {
     /**
+     * Deteksi missing data per stasiun
+     * 
+     * @param array $stationIds Array ID stasiun
+     * @param int $year Tahun untuk validasi
+     * @return array Detail missing data per stasiun
+     */
+    private function detectMissingDataPerStation(array $stationIds, int $year): array
+    {
+        $now = Carbon::now();
+        $currentYear = $now->year;
+        $currentMonth = $now->month;
+        
+        // Tentukan rentang bulan yang diharapkan
+        if ($year == $currentYear) {
+            $firstMonth = Carbon::create($year, 1, 1)->startOfMonth();
+            $lastMonth = Carbon::create($year, $currentMonth, 1)->endOfMonth();
+        } else {
+            $firstMonth = Carbon::create($year, 1, 1)->startOfMonth();
+            $lastMonth = Carbon::create($year, 12, 31)->endOfMonth();
+        }
+
+        // Generate semua bulan yang diharapkan
+        $expectedMonths = [];
+        $current = $firstMonth->copy();
+        while ($current->lte($lastMonth)) {
+            $expectedMonths[] = $current->format('Y-m');
+            $current->addMonth();
+        }
+
+        $stationsDetail = [];
+        
+        foreach ($stationIds as $stationId) {
+            $station = Station::with('village.district.regency')->find($stationId);
+            if (!$station) continue;
+
+            // Ambil bulan yang tersedia untuk stasiun ini
+            $stationMonths = RainfallData::where('station_id', $stationId)
+                ->whereYear('date', $year)
+                ->orderBy('date', 'asc')
+                ->get()
+                ->map(fn($r) => Carbon::parse($r->date)->format('Y-m'))
+                ->unique()
+                ->values()
+                ->toArray();
+
+            // Identifikasi bulan yang missing
+            $missingMonths = [];
+            foreach ($expectedMonths as $month) {
+                if (!in_array($month, $stationMonths)) {
+                    $missingMonths[] = $month;
+                }
+            }
+
+            if (count($missingMonths) > 0) {
+                $completenessRatio = count($expectedMonths) > 0 
+                    ? round(((count($expectedMonths) - count($missingMonths)) / count($expectedMonths)) * 100, 2) 
+                    : 0;
+
+                $stationsDetail[] = [
+                    'station_id' => $station->id,
+                    'station_name' => $station->station_name,
+                    'regency_name' => $station->village->district->regency->name ?? 'N/A',
+                    'district_name' => $station->village->district->name ?? 'N/A',
+                    'village_name' => $station->village->name ?? 'N/A',
+                    'data_count' => count($stationMonths),
+                    'expected_count' => count($expectedMonths),
+                    'missing_count' => count($missingMonths),
+                    'missing_months' => $missingMonths,
+                    'completeness_ratio' => $completenessRatio,
+                ];
+            }
+        }
+
+        return $stationsDetail;
+    }
+
+    /**
      * Deteksi missing data dalam sequence bulanan berdasarkan tanggal saat ini
      * 
      * @param array $availableMonths Bulan yang tersedia (format: 'Y-m')
@@ -140,6 +217,8 @@ class RainfallDataController extends Controller
 
         // --- Deteksi Missing Data Gaps ---
         $missingDataInfo = null;
+        $stationsDetail = null; // Detail per stasiun untuk kasus semua stasiun
+        
         if ($selectedStation !== 'all') {
             // Untuk stasiun tertentu, scan missing data dalam tahun yang dipilih
             $stationMonths = RainfallData::where('station_id', $selectedStation)
@@ -154,7 +233,12 @@ class RainfallDataController extends Controller
             
             $missingDataInfo = $this->detectMissingDataGaps($stationMonths, (int) $selectedYear);
         } elseif ($selectedRegency !== 'all') {
-            // Untuk kabupaten, scan missing data dari gabungan semua stasiun
+            // Untuk kabupaten dengan semua stasiun, scan missing data per stasiun
+            $regencyStations = Station::whereHas('village.district.regency', function ($q) use ($selectedRegency) {
+                $q->where('id', $selectedRegency);
+            })->pluck('id')->toArray();
+
+            // Scan missing data gabungan untuk overview
             $regencyMonths = DB::table('rainfall_data')
                 ->join('stations', 'rainfall_data.station_id', '=', 'stations.id')
                 ->join('villages', 'stations.village_id', '=', 'villages.id')
@@ -169,8 +253,16 @@ class RainfallDataController extends Controller
                 ->toArray();
             
             $missingDataInfo = $this->detectMissingDataGaps($regencyMonths, (int) $selectedYear);
+            
+            // Deteksi missing data per stasiun
+            if (!empty($regencyStations)) {
+                $stationsDetail = $this->detectMissingDataPerStation($regencyStations, (int) $selectedYear);
+            }
         } else {
-            // Untuk semua data, scan missing data dalam tahun yang dipilih
+            // Untuk semua data (semua kota dan semua stasiun), scan missing data per stasiun
+            $allStationIds = Station::pluck('id')->toArray();
+            
+            // Scan missing data gabungan untuk overview
             $allMonths = RainfallData::whereYear('date', $selectedYear)
                 ->orderBy('date', 'asc')
                 ->get()
@@ -181,6 +273,11 @@ class RainfallDataController extends Controller
                 ->toArray();
             
             $missingDataInfo = $this->detectMissingDataGaps($allMonths, (int) $selectedYear);
+            
+            // Deteksi missing data per stasiun
+            if (!empty($allStationIds)) {
+                $stationsDetail = $this->detectMissingDataPerStation($allStationIds, (int) $selectedYear);
+            }
         }
 
         // Pastikan semua variabel dikirim
@@ -193,7 +290,8 @@ class RainfallDataController extends Controller
             'selectedYear',
             'chartData',
             'availableYears',
-            'missingDataInfo'
+            'missingDataInfo',
+            'stationsDetail'
         ));
     }
     
