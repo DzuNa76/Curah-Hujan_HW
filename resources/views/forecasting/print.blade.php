@@ -73,7 +73,7 @@
     {{-- Informasi Umum --}}
     <div class="info">
         <p><strong>Tanggal Cetak:</strong> {{ $printed_at }}</p>
-        <p><strong>Dicetak oleh:</strong> {{ $user }}</p>
+        {{-- <p><strong>Dicetak oleh:</strong> {{ $user }}</p> --}}
 
         {{-- Informasi Lokasi --}}
         @if(isset($station) && $station)
@@ -143,7 +143,7 @@
                 <p>Mengetahui,</p>
                 <br><br><br>
                 <p><strong>{{ $user }}</strong></p>
-                <p><em>(Petugas Pencetak)</em></p>
+                {{-- <p><em>(Petugas Pencetak)</em></p> --}}
             </td>
         </tr>
     </table>

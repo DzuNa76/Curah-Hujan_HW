@@ -59,21 +59,21 @@
             {{-- 🔹 Parameter Alpha, Beta, Gamma --}}
             <div class="col-md-2">
                 <label for="alpha">Alpha (α)
-                    <small class="text-muted">(Batas Parameter 0 - 1)</small>
+                    <small class="text-muted">(Parameter 0 - 1)</small>
                 </label>
                 <input type="number" step="0.001" min="0" max="1" name="alpha" id="alpha"
                     value="{{ old('alpha', $alpha ?? '0.3') }}" class="form-control" required>
             </div>
             <div class="col-md-2">
                 <label for="beta">Beta (β)
-                    <small class="text-muted">(Batas Parameter 0 - 1)</small>
+                    <small class="text-muted">(Parameter 0 - 1)</small>
                 </label>
                 <input type="number" step="0.001" min="0" max="1" name="beta" id="beta"
                     value="{{ old('beta', $beta ?? '0.2') }}" class="form-control" required>
             </div>
             <div class="col-md-2">
                 <label for="gamma">Gamma (γ)
-                    <small class="text-muted">(Batas Parameter 0 - 1)</small>
+                    <small class="text-muted">(Parameter 0 - 1)</small>
                 </label>
                 <input type="number" step="0.001" min="0" max="1" name="gamma" id="gamma"
                     value="{{ old('gamma', $gamma ?? '0.3') }}" class="form-control" required>
