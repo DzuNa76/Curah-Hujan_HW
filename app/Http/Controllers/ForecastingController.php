@@ -65,6 +65,107 @@ class ForecastingController extends Controller
     }
 
     /**
+     * Validasi konsistensi data antar stasiun dalam kabupaten
+     * 
+     * @param int|null $regencyId ID kabupaten (null untuk semua kabupaten)
+     * @param Carbon $start Tanggal mulai
+     * @param Carbon $end Tanggal akhir
+     * @return array ['is_consistent' => bool, 'stations_data' => array, 'inconsistencies' => array]
+     */
+    private function validateStationsDataConsistency(?int $regencyId, Carbon $start, Carbon $end): array
+    {
+        // Ambil semua stasiun dalam kabupaten
+        $stationsQuery = Station::with('village.district.regency');
+        
+        if ($regencyId !== null) {
+            $stationsQuery->whereHas('village.district.regency', function ($q) use ($regencyId) {
+                $q->where('id', $regencyId);
+            });
+        }
+        
+        $stations = $stationsQuery->get();
+        
+        if ($stations->isEmpty()) {
+            return [
+                'is_consistent' => true,
+                'stations_data' => [],
+                'inconsistencies' => [],
+            ];
+        }
+
+        // Generate semua bulan yang diharapkan
+        $expectedMonths = [];
+        $current = $start->copy();
+        while ($current->lte($end)) {
+            $expectedMonths[] = $current->format('Y-m');
+            $current->addMonth();
+        }
+
+        // Analisis data per stasiun
+        $stationsData = [];
+        $inconsistencies = [];
+        
+        foreach ($stations as $station) {
+            $stationMonths = RainfallData::where('station_id', $station->id)
+                ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                ->orderBy('date', 'asc')
+                ->get()
+                ->map(fn($r) => Carbon::parse($r->date)->format('Y-m'))
+                ->unique()
+                ->values()
+                ->toArray();
+
+            $missingMonths = [];
+            foreach ($expectedMonths as $month) {
+                if (!in_array($month, $stationMonths)) {
+                    $missingMonths[] = $month;
+                }
+            }
+
+            $stationsData[$station->id] = [
+                'station_id' => $station->id,
+                'station_name' => $station->station_name,
+                'regency_name' => $station->village->district->regency->name ?? 'N/A',
+                'data_count' => count($stationMonths),
+                'expected_count' => count($expectedMonths),
+                'missing_months' => $missingMonths,
+                'missing_count' => count($missingMonths),
+                'completeness_ratio' => count($expectedMonths) > 0 
+                    ? round((count($stationMonths) / count($expectedMonths)) * 100, 2) 
+                    : 0,
+            ];
+
+            // Deteksi inkonsistensi
+            if (count($missingMonths) > 0) {
+                $inconsistencies[] = [
+                    'station_id' => $station->id,
+                    'station_name' => $station->station_name,
+                    'regency_name' => $station->village->district->regency->name ?? 'N/A',
+                    'data_count' => count($stationMonths),
+                    'expected_count' => count($expectedMonths),
+                    'missing_count' => count($missingMonths),
+                    'missing_months' => $missingMonths,
+                    'completeness_ratio' => $stationsData[$station->id]['completeness_ratio'],
+                ];
+            }
+        }
+
+        // Deteksi perbedaan panjang data antar stasiun
+        $dataCounts = array_column($stationsData, 'data_count');
+        $uniqueCounts = array_unique($dataCounts);
+        
+        $isConsistent = count($uniqueCounts) <= 1 && count($inconsistencies) === 0;
+
+        return [
+            'is_consistent' => $isConsistent,
+            'stations_data' => $stationsData,
+            'inconsistencies' => $inconsistencies,
+            'unique_data_counts' => $uniqueCounts,
+            'expected_count' => count($expectedMonths),
+        ];
+    }
+
+    /**
      * Format pesan error untuk data tidak lengkap
      * 
      * @param array $validationResult Hasil dari validateDataCompleteness
@@ -337,6 +438,31 @@ class ForecastingController extends Controller
                         'id' => $id
                     ])->withInput()->with('error', 'Kabupaten tidak ditemukan.');
                 }
+            }
+
+            // ========================================
+            // VALIDASI KONSISTENSI DATA ANTAR STASIUN
+            // ========================================
+            $regencyId = ($id !== 'all') ? (int) $id : null;
+            $consistencyValidation = $this->validateStationsDataConsistency($regencyId, $start, $end);
+            
+            if (!$consistencyValidation['is_consistent']) {
+                // Format error message untuk inkonsistensi
+                $errorDetails = [
+                    'type' => 'inconsistency',
+                    'total_stations' => count($consistencyValidation['stations_data']),
+                    'inconsistent_stations' => count($consistencyValidation['inconsistencies']),
+                    'expected_count' => $consistencyValidation['expected_count'],
+                    'inconsistencies' => $consistencyValidation['inconsistencies'],
+                    'unique_data_counts' => $consistencyValidation['unique_data_counts'],
+                ];
+                
+                return redirect()->route('forecasting.index', [
+                    'type' => $type,
+                    'id' => $id
+                ])->withInput()
+                  ->with('consistency_error', $errorDetails)
+                  ->with('error', 'Data antar stasiun tidak konsisten! Proses peramalan dihentikan.');
             }
 
             $q = DB::table('rainfall_data')

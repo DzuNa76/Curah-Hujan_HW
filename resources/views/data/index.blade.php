@@ -73,6 +73,114 @@
     </div>
 </div>
 
+{{-- Alert Missing Data (Mengikuti Style Forecasting Index) --}}
+@if(isset($missingDataInfo) && $missingDataInfo['has_gaps'])
+    <div class="card shadow mb-4 border-warning">
+        <div class="card-header bg-warning text-dark d-flex align-items-center">
+            <i class="fas fa-exclamation-circle fa-2x mr-3"></i>
+            <div>
+                <h5 class="mb-0 font-weight-bold">Data Tidak Lengkap - Peringatan</h5>
+                <small>Ditemukan data yang hilang dari {{ \Carbon\Carbon::parse($missingDataInfo['start_month'] . '-01')->translatedFormat('F Y') }} sampai {{ \Carbon\Carbon::parse($missingDataInfo['end_month'] . '-01')->translatedFormat('F Y') }}</small>
+            </div>
+        </div>
+        <div class="card-body">
+            {{-- Statistik Data --}}
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h3 class="text-primary mb-0">{{ $missingDataInfo['expected_count'] ?? 0 }}</h3>
+                            <small class="text-muted">Bulan Diharapkan</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h3 class="text-success mb-0">{{ $missingDataInfo['actual_count'] ?? 0 }}</h3>
+                            <small class="text-muted">Bulan Tersedia</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h3 class="text-danger mb-0">{{ $missingDataInfo['total_missing'] ?? 0 }}</h3>
+                            <small class="text-muted">Bulan Missing</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h3 class="text-warning mb-0">{{ $missingDataInfo['completeness_ratio'] ?? 0 }}%</h3>
+                            <small class="text-muted">Kelengkapan Data</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Progress Bar Kelengkapan --}}
+            <div class="mb-4">
+                <label class="font-weight-bold">Tingkat Kelengkapan Data:</label>
+                <div class="progress" style="height: 30px;">
+                    <div class="progress-bar 
+                        @if($missingDataInfo['completeness_ratio'] >= 100) bg-success
+                        @elseif($missingDataInfo['completeness_ratio'] >= 80) bg-warning
+                        @else bg-danger
+                        @endif" 
+                        role="progressbar" 
+                        style="width: {{ $missingDataInfo['completeness_ratio'] }}%"
+                        aria-valuenow="{{ $missingDataInfo['completeness_ratio'] }}" 
+                        aria-valuemin="0" 
+                        aria-valuemax="100">
+                        <strong>{{ $missingDataInfo['completeness_ratio'] }}%</strong>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Daftar Bulan yang Missing --}}
+            @if(!empty($missingDataInfo['missing_months']))
+                <div class="mb-4">
+                    <label class="font-weight-bold mb-2">Bulan yang Missing:</label>
+                    <div class="d-flex flex-wrap" style="gap: 0.5rem;">
+                        @foreach($missingDataInfo['missing_months'] as $month)
+                            <span class="badge badge-danger badge-lg px-3 py-2" style="font-size: 0.9rem;">
+                                <i class="fas fa-calendar-times mr-1"></i>
+                                {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}
+                            </span>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            {{-- Penjelasan dan Call to Action --}}
+            <div class="alert alert-info">
+                <h6 class="font-weight-bold"><i class="fas fa-info-circle mr-2"></i>Mengapa Data Harus Lengkap?</h6>
+                <p class="mb-2">
+                    Sistem memeriksa kelengkapan data dari awal tahun {{ $selectedYear }} sampai bulan saat ini ({{ \Carbon\Carbon::parse($missingDataInfo['current_month'] . '-01')->translatedFormat('F Y') }}). 
+                    Data yang tidak lengkap dapat menyebabkan:
+                </p>
+                <ul class="mb-0">
+                    <li>Analisis trend yang tidak akurat</li>
+                    <li>Kesalahan dalam perhitungan forecasting</li>
+                    <li>Hasil prediksi yang tidak reliable untuk pengambilan keputusan</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-warning">
+                <h6 class="font-weight-bold"><i class="fas fa-tasks mr-2"></i>Tindakan yang Diperlukan:</h6>
+                <ol class="mb-0">
+                    <li>Gunakan tombol <strong>"Tambah Data"</strong> di atas untuk menambahkan data yang hilang</li>
+                    <li>Lengkapi data curah hujan untuk bulan-bulan yang missing (ditandai dengan badge merah di atas)</li>
+                    <li>Pastikan semua bulan dari {{ \Carbon\Carbon::parse($missingDataInfo['start_month'] . '-01')->translatedFormat('F Y') }} sampai {{ \Carbon\Carbon::parse($missingDataInfo['end_month'] . '-01')->translatedFormat('F Y') }} memiliki data</li>
+                    <li>Setelah data lengkap, sistem akan otomatis memperbarui status kelengkapan</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+@endif
+
 {{-- ======================== --}}
 {{-- 🔹 CARD TABEL DATA --}}
 {{-- ======================== --}}

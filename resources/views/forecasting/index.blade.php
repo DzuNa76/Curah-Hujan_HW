@@ -240,6 +240,117 @@
     </div>
 @endif
 
+{{-- Error Message untuk Konsistensi Data Antar Stasiun --}}
+@if(session('consistency_error'))
+    @php
+        $consistencyError = session('consistency_error');
+    @endphp
+    
+    <div class="card shadow mb-4 border-danger">
+        <div class="card-header bg-danger text-white d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle fa-2x mr-3"></i>
+            <div>
+                <h5 class="mb-0 font-weight-bold">Data Antar Stasiun Tidak Konsisten - Forecasting Dibatalkan</h5>
+                <small>Proses peramalan dihentikan karena ditemukan ketidakkonsistenan data antar stasiun</small>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-danger">
+                <h6 class="font-weight-bold"><i class="fas fa-info-circle mr-2"></i>Ringkasan Masalah:</h6>
+                <ul class="mb-0">
+                    <li>Total stasiun yang dianalisis: <strong>{{ $consistencyError['total_stations'] }}</strong></li>
+                    <li>Stasiun dengan data tidak konsisten: <strong>{{ $consistencyError['inconsistent_stations'] }}</strong></li>
+                    <li>Bulan yang diharapkan per stasiun: <strong>{{ $consistencyError['expected_count'] }}</strong> bulan</li>
+                    <li>Variasi panjang data: <strong>{{ implode(', ', $consistencyError['unique_data_counts']) }}</strong> bulan</li>
+                </ul>
+            </div>
+
+            @if(!empty($consistencyError['inconsistencies']))
+                <div class="mb-4">
+                    <h6 class="font-weight-bold mb-3">Detail Stasiun dengan Data Tidak Konsisten:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Stasiun</th>
+                                    <th>Kabupaten</th>
+                                    <th>Data Tersedia</th>
+                                    <th>Data Diharapkan</th>
+                                    <th>Data Missing</th>
+                                    <th>Kelengkapan</th>
+                                    <th>Bulan yang Missing</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($consistencyError['inconsistencies'] as $index => $inconsistency)
+                                    <tr>
+                                        <td>{{ $index + 1 }}</td>
+                                        <td><strong>{{ $inconsistency['station_name'] }}</strong></td>
+                                        <td>{{ $inconsistency['regency_name'] }}</td>
+                                        <td class="text-center">
+                                            <span class="badge badge-info">{{ $inconsistency['data_count'] }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-primary">{{ $inconsistency['expected_count'] }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-danger">{{ $inconsistency['missing_count'] }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-{{ $inconsistency['completeness_ratio'] >= 100 ? 'success' : ($inconsistency['completeness_ratio'] >= 80 ? 'warning' : 'danger') }}">
+                                                {{ $inconsistency['completeness_ratio'] }}%
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @foreach(array_slice($inconsistency['missing_months'], 0, 5) as $month)
+                                                    <span class="badge badge-danger badge-sm">
+                                                        {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('M Y') }}
+                                                    </span>
+                                                @endforeach
+                                                @if(count($inconsistency['missing_months']) > 5)
+                                                    <span class="badge badge-secondary badge-sm">
+                                                        +{{ count($inconsistency['missing_months']) - 5 }} lainnya
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
+            <div class="alert alert-warning">
+                <h6 class="font-weight-bold"><i class="fas fa-exclamation-triangle mr-2"></i>Mengapa Konsistensi Data Penting?</h6>
+                <p class="mb-2">
+                    Untuk forecasting level kabupaten, sistem menghitung rata-rata curah hujan dari semua stasiun dalam wilayah tersebut. 
+                    Ketidakkonsistenan data antar stasiun dapat menyebabkan:
+                </p>
+                <ul class="mb-0">
+                    <li>Rata-rata yang tidak akurat karena beberapa stasiun memiliki data lebih sedikit</li>
+                    <li>Bias dalam perhitungan forecasting yang mengarah pada prediksi yang tidak reliable</li>
+                    <li>Ketidakseimbangan representasi data dari stasiun-stasiun yang berbeda</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-info">
+                <h6 class="font-weight-bold"><i class="fas fa-tasks mr-2"></i>Rekomendasi Perbaikan:</h6>
+                <ol class="mb-0">
+                    <li>Buka menu <strong>Data Curah Hujan</strong> di sidebar</li>
+                    <li>Periksa setiap stasiun yang tercantum dalam tabel di atas</li>
+                    <li>Lengkapi data untuk bulan-bulan yang missing pada setiap stasiun</li>
+                    <li>Pastikan semua stasiun memiliki jumlah data yang sama dalam rentang yang dipilih</li>
+                    <li>Setelah data lengkap dan konsisten, kembali ke halaman ini dan coba proses forecasting lagi</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+@endif
+
 {{-- 🔹 PERBAIKAN: Kondisi tampil hasil yang benar --}}
 @if(!empty($labels) && count($labels) > 0 && isset($mae) && isset($rmse))
     {{-- Evaluasi --}}
