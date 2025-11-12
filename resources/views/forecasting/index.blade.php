@@ -58,22 +58,28 @@
 
             {{-- 🔹 Parameter Alpha, Beta, Gamma --}}
             <div class="col-md-2">
-                <label for="alpha">Alpha (α)</label>
+                <label for="alpha">Alpha (α)
+                    <small class="text-muted">(Batas Parameter 0 - 1)</small>
+                </label>
                 <input type="number" step="0.001" min="0" max="1" name="alpha" id="alpha"
                     value="{{ old('alpha', $alpha ?? '0.3') }}" class="form-control" required>
             </div>
             <div class="col-md-2">
-                <label for="beta">Beta (β)</label>
+                <label for="beta">Beta (β)
+                    <small class="text-muted">(Batas Parameter 0 - 1)</small>
+                </label>
                 <input type="number" step="0.001" min="0" max="1" name="beta" id="beta"
                     value="{{ old('beta', $beta ?? '0.2') }}" class="form-control" required>
             </div>
             <div class="col-md-2">
-                <label for="gamma">Gamma (γ)</label>
+                <label for="gamma">Gamma (γ)
+                    <small class="text-muted">(Batas Parameter 0 - 1)</small>
+                </label>
                 <input type="number" step="0.001" min="0" max="1" name="gamma" id="gamma"
                     value="{{ old('gamma', $gamma ?? '0.3') }}" class="form-control" required>
             </div>
 
-            {{-- 🔹 Rentang Data --}}
+            {{-- 🔹 Rentang Data (Dynamic Dropdown) --}}
             @php
                 $sortedDates = isset($allDates) ? collect($allDates)->sortDesc()->values() : collect([]);
                 $defaultEnd = $sortedDates->first() ? \Carbon\Carbon::parse($sortedDates->first())->format('Y-m-d') : null;
@@ -81,7 +87,8 @@
 
             <div class="col-md-3">
                 <label for="start">Data Awal</label>
-                <select id="start" name="start" class="form-control">
+                <select id="start" name="start" class="form-control" required>
+                    <option value="">Memuat...</option>
                     @foreach($sortedDates as $date)
                         <option value="{{ \Carbon\Carbon::parse($date)->format('Y-m-d') }}"
                             {{ ($start ?? '') == \Carbon\Carbon::parse($date)->format('Y-m-d') ? 'selected' : '' }}>
@@ -93,7 +100,8 @@
 
             <div class="col-md-3">
                 <label for="end">Data Akhir</label>
-                <select id="end" name="end" class="form-control">
+                <select id="end" name="end" class="form-control" required>
+                    <option value="">Memuat...</option>
                     @foreach($sortedDates as $date)
                         <option value="{{ \Carbon\Carbon::parse($date)->format('Y-m-d') }}"
                             {{ ($end ?? $defaultEnd) == \Carbon\Carbon::parse($date)->format('Y-m-d') ? 'selected' : '' }}>
@@ -113,13 +121,122 @@
     </div>
 </div>
 
-{{-- Jika ada pesan error/warning tampilkan --}}
-@if(session('error'))
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <i class="fas fa-exclamation-triangle"></i> {{ session('error') }}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
+{{-- Error Message yang Informatif dan Terstruktur --}}
+@if(session('error') || session('validation_error'))
+    @php
+        $validationError = session('validation_error');
+    @endphp
+    
+    <div class="card shadow mb-4 border-danger">
+        <div class="card-header bg-danger text-white d-flex align-items-center">
+            <i class="fas fa-exclamation-circle fa-2x mr-3"></i>
+            <div>
+                <h5 class="mb-0 font-weight-bold">Data Tidak Lengkap - Forecasting Dibatalkan</h5>
+                <small>Proses peramalan dihentikan karena data tidak memenuhi syarat kelengkapan 100%</small>
+            </div>
+        </div>
+        <div class="card-body">
+            @if($validationError)
+                {{-- Statistik Data --}}
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3 class="text-primary mb-0">{{ $validationError['expected_count'] ?? 0 }}</h3>
+                                <small class="text-muted">Bulan Diharapkan</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3 class="text-success mb-0">{{ $validationError['actual_count'] ?? 0 }}</h3>
+                                <small class="text-muted">Bulan Tersedia</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3 class="text-danger mb-0">{{ count($validationError['missing_months'] ?? []) }}</h3>
+                                <small class="text-muted">Bulan Missing</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3 class="text-warning mb-0">{{ $validationError['completeness_ratio'] ?? 0 }}%</h3>
+                                <small class="text-muted">Kelengkapan Data</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Progress Bar Kelengkapan --}}
+                <div class="mb-4">
+                    <label class="font-weight-bold">Tingkat Kelengkapan Data:</label>
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar 
+                            @if($validationError['completeness_ratio'] >= 100) bg-success
+                            @elseif($validationError['completeness_ratio'] >= 80) bg-warning
+                            @else bg-danger
+                            @endif" 
+                            role="progressbar" 
+                            style="width: {{ $validationError['completeness_ratio'] }}%"
+                            aria-valuenow="{{ $validationError['completeness_ratio'] }}" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100">
+                            <strong>{{ $validationError['completeness_ratio'] }}%</strong>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Daftar Bulan yang Missing --}}
+                @if(!empty($validationError['missing_months']))
+                    <div class="mb-4">
+                        <label class="font-weight-bold mb-2">Bulan yang Missing:</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach($validationError['missing_months'] as $month)
+                                <span class="badge badge-danger badge-lg px-3 py-2" style="font-size: 0.9rem;">
+                                    <i class="fas fa-calendar-times mr-1"></i>
+                                    {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}
+                                </span>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Penjelasan dan Call to Action --}}
+                <div class="alert alert-info">
+                    <h6 class="font-weight-bold"><i class="fas fa-info-circle mr-2"></i>Mengapa Data Harus Lengkap?</h6>
+                    <p class="mb-2">
+                        Sistem forecasting Holt-Winters memerlukan data yang lengkap 100% untuk menghasilkan peramalan yang akurat dan dapat dipertanggungjawabkan. 
+                        Data yang tidak lengkap dapat menyebabkan:
+                    </p>
+                    <ul class="mb-0">
+                        <li>Inisialisasi komponen seasonal yang tidak akurat</li>
+                        <li>Error propagasi yang signifikan dalam perhitungan smoothing</li>
+                        <li>Hasil forecast yang tidak reliable untuk pengambilan keputusan</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-warning">
+                    <h6 class="font-weight-bold"><i class="fas fa-tasks mr-2"></i>Tindakan yang Diperlukan:</h6>
+                    <ol class="mb-0">
+                        <li>Buka menu <strong>Data Curah Hujan</strong> di sidebar</li>
+                        <li>Lengkapi data curah hujan untuk bulan-bulan yang missing (ditandai dengan badge merah di atas)</li>
+                        <li>Pastikan semua bulan dalam rentang yang dipilih memiliki data</li>
+                        <li>Kembali ke halaman ini dan coba proses forecasting lagi</li>
+                    </ol>
+                </div>
+            @else
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    {{ session('error') }}
+                </div>
+            @endif
+        </div>
     </div>
 @endif
 
@@ -249,6 +366,85 @@
         const startSelect = document.getElementById('start');
         const endSelect = document.getElementById('end');
 
+        // --- 🔹 Fungsi untuk update dropdown tanggal via AJAX ---
+        function updateDateDropdowns() {
+            const type = typeSelect.value;
+            const id = type === 'station' ? stationSelect.value : regencySelect.value;
+            
+            // Tampilkan loading state
+            startSelect.innerHTML = '<option value="">Memuat...</option>';
+            endSelect.innerHTML = '<option value="">Memuat...</option>';
+            startSelect.disabled = true;
+            endSelect.disabled = true;
+
+            // AJAX call untuk mendapatkan available dates
+            fetch(`{{ route('forecasting.available-dates') }}?type=${type}&id=${id}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.dates && data.dates.length > 0) {
+                    // Update start dropdown
+                    startSelect.innerHTML = '';
+                    data.dates.forEach(date => {
+                        const option = document.createElement('option');
+                        option.value = date.value;
+                        option.textContent = date.label;
+                        startSelect.appendChild(option);
+                    });
+
+                    // Update end dropdown (sama dengan start)
+                    endSelect.innerHTML = '';
+                    data.dates.forEach(date => {
+                        const option = document.createElement('option');
+                        option.value = date.value;
+                        option.textContent = date.label;
+                        endSelect.appendChild(option);
+                    });
+
+                    // Set default values (first and last)
+                    if (data.dates.length > 0) {
+                        startSelect.value = data.dates[0].value;
+                        endSelect.value = data.dates[data.dates.length - 1].value;
+                    }
+
+                    startSelect.disabled = false;
+                    endSelect.disabled = false;
+                } else {
+                    startSelect.innerHTML = '<option value="">Tidak ada data</option>';
+                    endSelect.innerHTML = '<option value="">Tidak ada data</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching available dates:', error);
+                startSelect.innerHTML = '<option value="">Error memuat data</option>';
+                endSelect.innerHTML = '<option value="">Error memuat data</option>';
+            });
+        }
+
+        // --- 🔹 Event listeners untuk update dropdown saat lokasi berubah ---
+        typeSelect.addEventListener('change', function() {
+            toggleLocationSelect(this.value);
+            // Tunggu sebentar untuk memastikan select sudah ter-update
+            setTimeout(updateDateDropdowns, 100);
+        });
+
+        stationSelect.addEventListener('change', function() {
+            if (typeSelect.value === 'station') {
+                updateDateDropdowns();
+            }
+        });
+
+        regencySelect.addEventListener('change', function() {
+            if (typeSelect.value === 'regency') {
+                updateDateDropdowns();
+            }
+        });
+
         // --- 🔹 Reset sessionStorage jika user datang dari halaman lain ---
         const navEntries = performance.getEntriesByType('navigation');
         const navType = navEntries.length > 0 ? navEntries[0].type : null;
@@ -274,42 +470,86 @@
 
         // --- 🔹 Render chart jika ada data ---
         @if(!empty($labels) && count($labels) > 0 && isset($mae) && isset($rmse))
+            @php
+                // Siapkan data untuk missing indicators jika ada validation error
+                $missingIndices = session('validation_error')['missing_indices'] ?? [];
+                $missingDataPoints = [];
+                if (!empty($missingIndices)) {
+                    foreach ($missingIndices as $idx) {
+                        if (isset($labels[$idx])) {
+                            $missingDataPoints[] = [
+                                'x' => $idx,
+                                'y' => null,
+                                'label' => $labels[$idx]
+                            ];
+                        }
+                    }
+                }
+            @endphp
+
             const ctx = document.getElementById('forecastChart').getContext('2d');
-            new Chart(ctx, {
+            
+            // Siapkan datasets
+            const datasets = [
+                {
+                    label: 'Aktual',
+                    data: @json($values ?? []),
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    fill: false,
+                    tension: 0.2,
+                    pointRadius: 3,
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointHoverRadius: 5
+                },
+                {
+                    label: 'Forecast',
+                    data: @json($F ?? []),
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.2,
+                    pointRadius: 3,
+                    pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+                    pointHoverRadius: 5
+                }
+            ];
+
+            // Chart configuration
+            const chartConfig = {
                 type: 'line',
                 data: {
                     labels: @json($labels ?? []),
-                    datasets: [
-                        {
-                            label: 'Aktual',
-                            data: @json($values ?? []),
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                            fill: false,
-                            tension: 0.2,
-                            pointRadius: 3,
-                            pointBackgroundColor: 'rgba(54, 162, 235, 1)'
-                        },
-                        {
-                            label: 'Forecast',
-                            data: @json($F ?? []),
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                            borderDash: [5, 5],
-                            fill: false,
-                            tension: 0.2,
-                            pointRadius: 3,
-                            pointBackgroundColor: 'rgba(255, 99, 132, 1)'
-                        }
-                    ]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
                     interaction: { mode: 'index', intersect: false },
                     plugins: { 
-                        legend: { position: 'bottom' },
-                        title: { display: true, text: 'Grafik Peramalan Curah Hujan' }
+                        legend: { 
+                            position: 'bottom',
+                            display: true
+                        },
+                        title: { 
+                            display: true, 
+                            text: 'Grafik Peramalan Curah Hujan',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    @if(!empty($missingIndices))
+                                        const missingIndices = @json($missingIndices);
+                                        if (missingIndices.includes(context.dataIndex)) {
+                                            return '⚠️ Data Missing - Tidak tersedia';
+                                        }
+                                    @endif
+                                    return '';
+                                }
+                            }
+                        }
                     },
                     scales: {
                         y: { 
@@ -317,10 +557,37 @@
                             ticks: { callback: function(value) { return value.toFixed(2); } },
                             title: { display: true, text: 'Curah Hujan (mm)' }
                         },
-                        x: { title: { display: true, text: 'Bulan - Tahun' } }
+                        x: { 
+                            title: { display: true, text: 'Bulan - Tahun' },
+                            ticks: {
+                                callback: function(value, index) {
+                                    @if(!empty($missingIndices))
+                                        const missingIndices = @json($missingIndices);
+                                        if (missingIndices.includes(index)) {
+                                            return this.getLabelForValue(value) + ' ⚠️';
+                                        }
+                                    @endif
+                                    return this.getLabelForValue(value);
+                                }
+                            }
+                        }
                     }
                 }
-            });
+            };
+
+            const chart = new Chart(ctx, chartConfig);
+
+            // Tambahkan visual indicator untuk missing data setelah chart dibuat
+            @if(!empty($missingIndices))
+                const missingIndices = @json($missingIndices);
+                const chartArea = chart.chartArea;
+                
+                // Tambahkan annotation visual untuk missing data
+                missingIndices.forEach(index => {
+                    // Chart.js tidak memiliki built-in annotation, jadi kita gunakan CSS atau plugin
+                    // Untuk sekarang, kita akan menandai di tooltip dan label saja
+                });
+            @endif
         @endif
 
         // --- 🔹 Handle form submission ---

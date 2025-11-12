@@ -14,6 +14,183 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class ForecastingController extends Controller
 {
     /**
+     * Validasi kelengkapan data bulanan dalam rentang tanggal
+     * 
+     * @param Carbon $start Tanggal mulai (start of month)
+     * @param Carbon $end Tanggal akhir (end of month)
+     * @param array $actualData Data aktual yang tersedia (format: ['Y-m' => value])
+     * @return array ['is_complete' => bool, 'completeness_ratio' => float, 'missing_months' => array, 'missing_indices' => array, 'expected_count' => int, 'actual_count' => int, 'expected_months' => array]
+     */
+    private function validateDataCompleteness(Carbon $start, Carbon $end, array $actualData): array
+    {
+        // Generate semua bulan yang diharapkan dalam rentang
+        $expectedMonths = [];
+        $current = $start->copy();
+        
+        while ($current->lte($end)) {
+            $expectedMonths[] = $current->format('Y-m');
+            $current->addMonth();
+        }
+        
+        $expectedCount = count($expectedMonths);
+        $actualCount = count($actualData);
+        
+        // Identifikasi bulan yang missing beserta posisi indeksnya
+        $missingMonths = [];
+        $missingIndices = [];
+        foreach ($expectedMonths as $index => $month) {
+            if (!isset($actualData[$month])) {
+                $missingMonths[] = $month;
+                $missingIndices[] = $index; // Posisi indeks untuk visualisasi grafik
+            }
+        }
+        
+        // Hitung rasio kelengkapan
+        $completenessRatio = $expectedCount > 0 
+            ? (($expectedCount - count($missingMonths)) / $expectedCount) * 100 
+            : 0;
+        
+        // Status lengkap jika 100% dan tidak ada bulan missing
+        $isComplete = count($missingMonths) === 0 && $completenessRatio >= 100.0;
+        
+        return [
+            'is_complete' => $isComplete,
+            'completeness_ratio' => round($completenessRatio, 2),
+            'missing_months' => $missingMonths,
+            'missing_indices' => $missingIndices, // Untuk visualisasi grafik
+            'expected_count' => $expectedCount,
+            'actual_count' => $actualCount,
+            'expected_months' => $expectedMonths, // Semua bulan yang diharapkan
+        ];
+    }
+
+    /**
+     * Format pesan error untuk data tidak lengkap
+     * 
+     * @param array $validationResult Hasil dari validateDataCompleteness
+     * @return string Pesan error yang detail dan actionable
+     */
+    private function formatIncompleteDataError(array $validationResult): string
+    {
+        $missingCount = count($validationResult['missing_months']);
+        $completeness = $validationResult['completeness_ratio'];
+        $expectedCount = $validationResult['expected_count'];
+        $actualCount = $validationResult['actual_count'];
+        
+        // Format bulan yang missing (maksimal 5 untuk keterbacaan)
+        $missingMonthsDisplay = array_slice($validationResult['missing_months'], 0, 5);
+        $missingMonthsFormatted = array_map(function($month) {
+            try {
+                return Carbon::parse($month . '-01')->translatedFormat('F Y');
+            } catch (\Exception $e) {
+                return $month;
+            }
+        }, $missingMonthsDisplay);
+        
+        $missingList = implode(', ', $missingMonthsFormatted);
+        if ($missingCount > 5) {
+            $missingList .= ' dan ' . ($missingCount - 5) . ' bulan lainnya';
+        }
+        
+        $message = "Data tidak lengkap! Proses peramalan dihentikan.\n\n";
+        $message .= "Detail:\n";
+        $message .= "• Jumlah bulan yang diharapkan: {$expectedCount} bulan\n";
+        $message .= "• Jumlah bulan yang tersedia: {$actualCount} bulan\n";
+        $message .= "• Jumlah bulan yang missing: {$missingCount} bulan\n";
+        $message .= "• Persentase kelengkapan: {$completeness}%\n";
+        $message .= "• Bulan yang missing: {$missingList}\n\n";
+        $message .= "Tindakan yang diperlukan:\n";
+        $message .= "Silakan lengkapi data curah hujan untuk bulan-bulan yang missing terlebih dahulu sebelum melakukan peramalan. Sistem memerlukan data lengkap 100% untuk menghasilkan peramalan yang akurat dan dapat dipertanggungjawabkan.";
+        
+        return $message;
+    }
+
+    /**
+     * API: Get available dates berdasarkan lokasi
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAvailableDates(Request $request)
+    {
+        $request->validate([
+            'type' => 'required|in:station,regency',
+            'id' => 'nullable|string',
+        ]);
+
+        $type = $request->get('type');
+        $id = $request->get('id', 'all');
+
+        $dates = [];
+
+        if ($type === 'station') {
+            if ($id !== 'all') {
+                // Dates untuk stasiun tertentu
+                $dates = RainfallData::where('station_id', $id)
+                    ->selectRaw('DATE_FORMAT(date, "%Y-%m") as month, MIN(date) as min_date')
+                    ->groupBy('month')
+                    ->orderBy('month', 'asc')
+                    ->pluck('month')
+                    ->map(function($month) {
+                        return [
+                            'value' => Carbon::parse($month . '-01')->format('Y-m-d'),
+                            'label' => Carbon::parse($month . '-01')->translatedFormat('F Y'),
+                            'month' => $month
+                        ];
+                    })
+                    ->values()
+                    ->toArray();
+            } else {
+                // Dates untuk semua stasiun (rata-rata)
+                $dates = DB::table('rainfall_data')
+                    ->selectRaw('DATE_FORMAT(rainfall_data.date, "%Y-%m") as month')
+                    ->groupBy('month')
+                    ->orderBy('month', 'asc')
+                    ->pluck('month')
+                    ->map(function($month) {
+                        return [
+                            'value' => Carbon::parse($month . '-01')->format('Y-m-d'),
+                            'label' => Carbon::parse($month . '-01')->translatedFormat('F Y'),
+                            'month' => $month
+                        ];
+                    })
+                    ->values()
+                    ->toArray();
+            }
+        } else {
+            // Type = regency
+            $q = DB::table('rainfall_data')
+                ->join('stations', 'rainfall_data.station_id', '=', 'stations.id')
+                ->join('villages', 'stations.village_id', '=', 'villages.id')
+                ->join('districts', 'villages.district_id', '=', 'districts.id')
+                ->join('regencies', 'districts.regency_id', '=', 'regencies.id')
+                ->selectRaw('DATE_FORMAT(rainfall_data.date, "%Y-%m") as month')
+                ->groupBy('month');
+
+            if ($id !== 'all') {
+                $q->where('regencies.id', $id);
+            }
+
+            $dates = $q->orderBy('month', 'asc')
+                ->pluck('month')
+                ->map(function($month) {
+                    return [
+                        'value' => Carbon::parse($month . '-01')->format('Y-m-d'),
+                        'label' => Carbon::parse($month . '-01')->translatedFormat('F Y'),
+                        'month' => $month
+                    ];
+                })
+                ->values()
+                ->toArray();
+        }
+
+        return response()->json([
+            'success' => true,
+            'dates' => $dates
+        ]);
+    }
+
+    /**
      * Tampilkan form peramalan (index)
      */
     public function index(Request $request)
@@ -64,27 +241,49 @@ class ForecastingController extends Controller
     public function process(Request $request)
     {
         // ------------------------------
-        // Validasi input
+        // VALIDASI INPUT DENGAN KETAT
         // ------------------------------
-        $request->validate([
+        $validated = $request->validate([
             'alpha' => 'required|numeric|min:0|max:1',
             'beta'  => 'required|numeric|min:0|max:1',
             'gamma' => 'required|numeric|min:0|max:1',
             'start' => 'required|date',
             'end'   => 'required|date|after_or_equal:start',
             'type'  => 'nullable|in:station,regency',
-            'id'    => 'nullable',
+            'id'    => 'nullable|string',
         ]);
 
-        $alpha = (float) $request->alpha;
-        $beta  = (float) $request->beta;
-        $gamma = (float) $request->gamma;
+        // Sanitasi dan type casting parameter
+        $alpha = (float) $validated['alpha'];
+        $beta  = (float) $validated['beta'];
+        $gamma = (float) $validated['gamma'];
 
-        $start = Carbon::parse($request->start)->startOfMonth();
-        $end   = Carbon::parse($request->end)->endOfMonth();
+        // Parse dan validasi tanggal dengan error handling
+        try {
+            $start = Carbon::parse($validated['start'])->startOfMonth();
+            $end   = Carbon::parse($validated['end'])->endOfMonth();
+        } catch (\Exception $e) {
+            return redirect()->route('forecasting.index')
+                ->withInput()
+                ->with('error', 'Format tanggal tidak valid. Silakan pilih tanggal yang benar.');
+        }
 
-        $type = $request->get('type', 'station');
-        $id   = $request->get('id', 'all');
+        // Validasi rentang tanggal tidak terlalu besar (maksimal 10 tahun untuk performa)
+        if ($start->diffInMonths($end) > 120) {
+            return redirect()->route('forecasting.index')
+                ->withInput()
+                ->with('error', 'Rentang tanggal terlalu besar. Maksimal 10 tahun (120 bulan).');
+        }
+
+        $type = $validated['type'] ?? 'station';
+        $id   = $validated['id'] ?? 'all';
+        
+        // Sanitasi ID: jika bukan 'all', pastikan adalah integer atau string yang valid
+        if ($id !== 'all' && !is_numeric($id) && !ctype_alnum($id)) {
+            return redirect()->route('forecasting.index')
+                ->withInput()
+                ->with('error', 'Parameter ID tidak valid.');
+        }
 
         $stations = Station::with('village.district.regency')->orderBy('station_name')->get();
         $regencies = Regency::orderBy('name')->get();
@@ -169,6 +368,21 @@ class ForecastingController extends Controller
             ])->withInput()->with('error', 'Tidak ada data curah hujan pada rentang waktu yang dipilih.');
         }
 
+        // ========================================
+        // VALIDASI KELENGKAPAN DATA (100% THRESHOLD)
+        // ========================================
+        $completenessValidation = $this->validateDataCompleteness($start, $end, $data);
+        
+        if (!$completenessValidation['is_complete']) {
+            // Simpan data validasi untuk ditampilkan di view
+            return redirect()->route('forecasting.index', [
+                'type' => $type,
+                'id' => $id
+            ])->withInput()
+              ->with('validation_error', $completenessValidation)
+              ->with('error', 'Data tidak lengkap! Proses peramalan dihentikan.');
+        }
+
         ksort($data);
         $values = array_values($data);
         $labels = array_keys($data);
@@ -176,13 +390,13 @@ class ForecastingController extends Controller
         $n = count($values);
 
         // ========================================
-        // VALIDASI MINIMUM DATA
+        // VALIDASI MINIMUM DATA (24 BULAN = 2 MUSIM)
         // ========================================
         if ($n < 2 * $m) {
             return redirect()->route('forecasting.index', [
                 'type' => $type,
                 'id' => $id
-            ])->withInput()->with('error', "Dibutuhkan minimal " . (2 * $m) . " bulan data (2 musim). Data saat ini: " . $n . " bulan.");
+            ])->withInput()->with('error', "Dibutuhkan minimal " . (2 * $m) . " bulan data (2 musim penuh). Data saat ini: " . $n . " bulan.");
         }
 
         // ========================================
