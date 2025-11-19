@@ -50,6 +50,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{station_id}/{id}', [RainfallDataController::class, 'destroy'])->name('destroy');
     });
 
+    // 🖨️ Cetak Data Curah Hujan
+    Route::post('/data/cetak', [RainfallDataController::class, 'cetak'])->name('data.cetak');
+    Route::get('/data/available-months', [RainfallDataController::class, 'getAvailableMonths'])->name('data.available-months');
+
 
     // 📈 Forecasting
     Route::get('/forecasting', [ForecastingController::class, 'index'])->name('forecasting.index');

@@ -7,7 +7,9 @@ use App\Models\Station;
 use App\Models\Regency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class RainfallDataController extends Controller
 {
@@ -376,5 +378,112 @@ class RainfallDataController extends Controller
 
         return redirect()->route('rainfall.index')
             ->with('success', 'Data curah hujan berhasil dihapus!');
+    }
+
+    // Get available months for selected category and id
+    public function getAvailableMonths(Request $request)
+    {
+        $request->validate([
+            'kategori' => 'required|in:kota,pos',
+        ]);
+
+        $query = RainfallData::selectRaw('DISTINCT DATE_FORMAT(date, "%Y-%m") as month')
+            ->orderBy('month', 'asc');
+
+        if ($request->kategori === 'kota') {
+            if ($request->filled('kota_id')) {
+                $query->whereHas('station.village.district.regency', function ($q) use ($request) {
+                    $q->where('id', $request->kota_id);
+                });
+            }
+        } else {
+            if ($request->filled('pos_id')) {
+                $query->where('station_id', $request->pos_id);
+            }
+        }
+
+        $months = $query->pluck('month')->toArray();
+
+        return response()->json([
+            'success' => true,
+            'months' => $months,
+            'min_month' => !empty($months) ? min($months) : null,
+            'max_month' => !empty($months) ? max($months) : null,
+        ]);
+    }
+
+    // Ekspor PDF data curah hujan
+    public function cetak(Request $request)
+    {
+        $request->validate([
+            'kategori' => 'required|in:kota,pos',
+            'bulan_mulai' => 'required|date_format:Y-m',
+            'bulan_akhir' => 'required|date_format:Y-m',
+        ]);
+
+        $kategori = $request->kategori;
+        $bulanMulai = Carbon::createFromFormat('Y-m', $request->bulan_mulai)->startOfMonth();
+        $bulanAkhir = Carbon::createFromFormat('Y-m', $request->bulan_akhir)->endOfMonth();
+
+        // Validasi bulan akhir >= bulan mulai
+        if ($bulanAkhir->lt($bulanMulai)) {
+            return redirect()->route('rainfall.index')
+                ->with('error', 'Bulan Akhir harus lebih besar atau sama dengan Bulan Mulai!');
+        }
+
+        $query = RainfallData::with('station.village.district.regency')
+            ->whereBetween('date', [$bulanMulai, $bulanAkhir])
+            ->orderBy('date', 'asc');
+
+        $title = '';
+        $subtitle = '';
+        $locationInfo = [];
+
+        if ($kategori === 'kota') {
+            $request->validate(['kota_id' => 'required|exists:regencies,id']);
+            $regency = Regency::findOrFail($request->kota_id);
+            
+            $query->whereHas('station.village.district.regency', function ($q) use ($request) {
+                $q->where('id', $request->kota_id);
+            });
+
+            $title = 'Data Curah Hujan - ' . $regency->name;
+            $subtitle = 'Kabupaten/Kota: ' . $regency->name;
+            $locationInfo = [
+                'type' => 'kota',
+                'name' => $regency->name,
+            ];
+        } else {
+            $request->validate(['pos_id' => 'required|exists:stations,id']);
+            $station = Station::with('village.district.regency')->findOrFail($request->pos_id);
+            
+            $query->where('station_id', $request->pos_id);
+
+            $title = 'Data Curah Hujan - ' . $station->station_name;
+            $subtitle = 'Stasiun: ' . $station->station_name;
+            $locationInfo = [
+                'type' => 'pos',
+                'station' => $station,
+            ];
+        }
+
+        $rainfallData = $query->get();
+
+        $user = Auth::user()->name ?? 'Administrator';
+        $printed_at = Carbon::now()->translatedFormat('d F Y H:i');
+
+        $pdf = Pdf::loadView('data.cetak-pdf', [
+            'rainfallData' => $rainfallData,
+            'title' => $title,
+            'subtitle' => $subtitle,
+            'locationInfo' => $locationInfo,
+            'bulanMulai' => $bulanMulai,
+            'bulanAkhir' => $bulanAkhir,
+            'user' => $user,
+            'printed_at' => $printed_at,
+        ]);
+
+        $filename = 'Laporan_Data_Curah_Hujan_' . date('Ymd_His') . '.pdf';
+        return $pdf->download($filename);
     }
 }

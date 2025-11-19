@@ -438,11 +438,17 @@
         </div>
         <div class="card-body">
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <p><strong>MAE (Mean Absolute Error):</strong> {{ number_format($mae, 4) }}</p>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <p><strong>RMSE (Root Mean Square Error):</strong> {{ number_format($rmse, 4) }}</p>
+                </div>
+                {{-- <div class="col-md-3">
+                    <p><strong>MAPE (Mean Absolute Percentage Error):</strong> {{ isset($mape) ? number_format($mape, 4) . '%' : '-' }}</p>
+                </div> --}}
+                <div class="col-md-3">
+                    <p><strong>NMAE (Normalized Mean Absolute Error):</strong> {{ isset($nmae) ? number_format($nmae, 4) . '%' : '-' }}</p>
                 </div>
             </div>
         </div>
@@ -466,6 +472,7 @@
                 <input type="hidden" name="mae" value="{{ isset($mae) ? $mae : '' }}">
                 <input type="hidden" name="rmse" value="{{ isset($rmse) ? $rmse : '' }}">
                 <input type="hidden" name="mape" value="{{ isset($mape) ? $mape : '' }}">
+                <input type="hidden" name="nmae" value="{{ isset($nmae) ? $nmae : '' }}">
                 <input type="hidden" name="start_date" value="{{ $start ?? '' }}">
                 <input type="hidden" name="end_date" value="{{ $end ?? '' }}">
                 

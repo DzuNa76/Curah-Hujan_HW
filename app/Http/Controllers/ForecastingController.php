@@ -745,6 +745,17 @@ class ForecastingController extends Controller
         }
         $mape = $mapeCount > 0 ? ($mapeSum / $mapeCount) * 100 : 0;
 
+        // Hitung NMAE (Normalized Mean Absolute Error)
+        // NMAE = (MAE / mean(actual values)) * 100
+        $validValues = [];
+        for ($t = $m; $t < $n; $t++) {
+            if (!is_null($values[$t]) && $values[$t] != 0) {
+                $validValues[] = $values[$t];
+            }
+        }
+        $meanActual = count($validValues) > 0 ? array_sum($validValues) / count($validValues) : 0;
+        $nmae = ($meanActual > 0 && $mae > 0) ? ($mae / $meanActual) * 100 : 0;
+
         // Ambil tanggal untuk dropdown
         $allDates = RainfallData::orderBy('date')
             ->get()
@@ -772,6 +783,7 @@ class ForecastingController extends Controller
             'mae'          => round($mae, 2),
             'rmse'         => round($rmse, 2),
             'mape'         => round($mape, 2),
+            'nmae'         => round($nmae, 2),
             'message'      => false, // Set false agar hasil ditampilkan
             'allDates'     => $allDates,
             'start'        => $request->start,
@@ -797,6 +809,7 @@ class ForecastingController extends Controller
             'mae'    => 'nullable',
             'rmse'   => 'nullable',
             'mape'   => 'nullable',
+            'nmae'   => 'nullable',
             'start_date' => 'nullable|date',
             'end_date'   => 'nullable|date',
             'station_id' => 'nullable',
@@ -814,6 +827,7 @@ class ForecastingController extends Controller
         $mae = $request->mae ?? null;
         $rmse = $request->rmse ?? null;
         $mape = $request->mape ?? null;
+        $nmae = $request->nmae ?? null;
 
         $start_date = $request->start_date ?? null;
         $end_date = $request->end_date ?? null;
@@ -841,6 +855,7 @@ class ForecastingController extends Controller
             'mae' => $mae,
             'rmse' => $rmse,
             'mape' => $mape,
+            'nmae' => $nmae,
             'user' => $user,
             'printed_at' => $printed_at,
             'station' => $station,

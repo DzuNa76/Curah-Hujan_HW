@@ -102,6 +102,12 @@
         <ul>
             <li>MAE (Mean Absolute Error): <strong>{{ number_format($mae, 2) }}</strong></li>
             <li>RMSE (Root Mean Square Error): <strong>{{ number_format($rmse, 2) }}</strong></li>
+            {{-- @if(isset($mape) && $mape !== null)
+                <li>MAPE (Mean Absolute Percentage Error): <strong>{{ number_format($mape, 2) }}%</strong></li>
+            @endif --}}
+            @if(isset($nmae) && $nmae !== null)
+                <li>NMAE (Normalized Mean Absolute Error): <strong>{{ number_format($nmae, 2) }}%</strong></li>
+            @endif
         </ul>
     </div>
 

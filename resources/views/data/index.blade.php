@@ -262,6 +262,9 @@
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-primary">Tabel Data Curah Hujan</h6>
+        <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#modalCetakData">
+            <i class="fas fa-print"></i> Cetak Data
+        </button>
     </div>
 
     <div class="card-body">
@@ -315,6 +318,89 @@
 @include('components.delete-modal')
 
 {{-- ======================== --}}
+{{-- 🔹 MODAL CETAK DATA --}}
+{{-- ======================== --}}
+<div class="modal fade" id="modalCetakData" tabindex="-1" role="dialog" aria-labelledby="modalCetakDataLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCetakDataLabel">
+                    <i class="fas fa-print mr-2"></i>Cetak Data Curah Hujan
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formCetakData" method="POST" action="{{ route('data.cetak') }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="kategori_cetak">Kategori Cetak <span class="text-danger">*</span></label>
+                        <select name="kategori" id="kategori_cetak" class="form-control" required>
+                            <option value="">-- Pilih Kategori --</option>
+                            <option value="kota">Kota</option>
+                            <option value="pos">Pos/Stasiun</option>
+                        </select>
+                        <small class="form-text text-muted">Pilih kategori berdasarkan Kota atau Pos/Stasiun</small>
+                    </div>
+
+                    <div class="form-group" id="groupKota" style="display: none;">
+                        <label for="kota_id">Pilih Kota <span class="text-danger">*</span></label>
+                        <select name="kota_id" id="kota_id" class="form-control">
+                            <option value="">-- Pilih Kota --</option>
+                            @foreach ($regencies as $regency)
+                                <option value="{{ $regency->id }}">{{ $regency->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="groupPos" style="display: none;">
+                        <label for="pos_id">Pilih Pos/Stasiun <span class="text-danger">*</span></label>
+                        <select name="pos_id" id="pos_id" class="form-control">
+                            <option value="">-- Pilih Pos/Stasiun --</option>
+                            @foreach ($stations as $station)
+                                <option value="{{ $station->id }}">
+                                    {{ $station->station_name }} — {{ $station->village->district->regency->name ?? '-' }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bulan_mulai">Bulan Mulai <span class="text-danger">*</span></label>
+                        <select name="bulan_mulai" id="bulan_mulai" class="form-control" required>
+                            <option value="">-- Pilih Bulan Mulai --</option>
+                        </select>
+                        <small class="form-text text-muted">Pilih bulan awal untuk rentang data yang akan dicetak</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bulan_akhir">Bulan Akhir <span class="text-danger">*</span></label>
+                        <select name="bulan_akhir" id="bulan_akhir" class="form-control" required>
+                            <option value="">-- Pilih Bulan Akhir --</option>
+                        </select>
+                        <small class="form-text text-muted">Pilih bulan akhir untuk rentang data yang akan dicetak</small>
+                    </div>
+
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <small>Pastikan semua field telah diisi dengan benar sebelum mencetak data.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-file-pdf"></i> Ekspor PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- ======================== --}}
 {{-- 🔹 CHART.JS --}}
 {{-- ======================== --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -360,6 +446,201 @@ document.addEventListener('DOMContentLoaded', function () {
                 x: { title: { display: true, text: 'Bulan (YYYY-MM)' } }
             }
         }
+    });
+
+    // ========================
+    // 🔹 MODAL CETAK DATA - JavaScript
+    // ========================
+    const kategoriCetak = document.getElementById('kategori_cetak');
+    const groupKota = document.getElementById('groupKota');
+    const groupPos = document.getElementById('groupPos');
+    const kotaId = document.getElementById('kota_id');
+    const posId = document.getElementById('pos_id');
+    const formCetakData = document.getElementById('formCetakData');
+    const bulanMulai = document.getElementById('bulan_mulai');
+    const bulanAkhir = document.getElementById('bulan_akhir');
+
+    // Fungsi untuk memuat bulan yang tersedia
+    function loadAvailableMonths() {
+        const kategori = kategoriCetak.value;
+        const kotaIdVal = kotaId.value;
+        const posIdVal = posId.value;
+        
+        if (!kategori) {
+            bulanMulai.innerHTML = '<option value="">-- Pilih Bulan Mulai --</option>';
+            bulanAkhir.innerHTML = '<option value="">-- Pilih Bulan Akhir --</option>';
+            return;
+        }
+        
+        // Tampilkan loading
+        bulanMulai.innerHTML = '<option value="">Memuat data...</option>';
+        bulanAkhir.innerHTML = '<option value="">Memuat data...</option>';
+        bulanMulai.disabled = true;
+        bulanAkhir.disabled = true;
+        
+        // Siapkan parameter
+        const params = new URLSearchParams({ kategori: kategori });
+        if (kategori === 'kota' && kotaIdVal) {
+            params.append('kota_id', kotaIdVal);
+        } else if (kategori === 'pos' && posIdVal) {
+            params.append('pos_id', posIdVal);
+        }
+        
+        // Panggil API
+        fetch('{{ route("data.available-months") }}?' + params.toString())
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.months && data.months.length > 0) {
+                    // Fungsi untuk format bulan
+                    const formatMonth = (monthStr) => {
+                        const [year, month] = monthStr.split('-');
+                        const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                                          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                        return monthNames[parseInt(month) - 1] + ' ' + year;
+                    };
+                    
+                    // Isi dropdown bulan mulai
+                    bulanMulai.innerHTML = '<option value="">-- Pilih Bulan Mulai --</option>';
+                    data.months.forEach(month => {
+                        const option = document.createElement('option');
+                        option.value = month;
+                        option.textContent = formatMonth(month);
+                        bulanMulai.appendChild(option);
+                    });
+                    
+                    // Isi dropdown bulan akhir
+                    bulanAkhir.innerHTML = '<option value="">-- Pilih Bulan Akhir --</option>';
+                    data.months.forEach(month => {
+                        const option = document.createElement('option');
+                        option.value = month;
+                        option.textContent = formatMonth(month);
+                        bulanAkhir.appendChild(option);
+                    });
+                    
+                    // Set default jika ada min dan max
+                    if (data.min_month) {
+                        bulanMulai.value = data.min_month;
+                    }
+                    if (data.max_month) {
+                        bulanAkhir.value = data.max_month;
+                    }
+                } else {
+                    bulanMulai.innerHTML = '<option value="">Tidak ada data tersedia</option>';
+                    bulanAkhir.innerHTML = '<option value="">Tidak ada data tersedia</option>';
+                }
+                bulanMulai.disabled = false;
+                bulanAkhir.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                bulanMulai.innerHTML = '<option value="">Error memuat data</option>';
+                bulanAkhir.innerHTML = '<option value="">Error memuat data</option>';
+                bulanMulai.disabled = false;
+                bulanAkhir.disabled = false;
+            });
+    }
+
+    // Toggle dropdown berdasarkan kategori
+    if (kategoriCetak) {
+        kategoriCetak.addEventListener('change', function() {
+            const kategori = this.value;
+            
+            // Reset dropdown
+            kotaId.value = '';
+            posId.value = '';
+            kotaId.removeAttribute('required');
+            posId.removeAttribute('required');
+            bulanMulai.innerHTML = '<option value="">-- Pilih Bulan Mulai --</option>';
+            bulanAkhir.innerHTML = '<option value="">-- Pilih Bulan Akhir --</option>';
+            
+            if (kategori === 'kota') {
+                groupKota.style.display = 'block';
+                groupPos.style.display = 'none';
+                kotaId.setAttribute('required', 'required');
+            } else if (kategori === 'pos') {
+                groupKota.style.display = 'none';
+                groupPos.style.display = 'block';
+                posId.setAttribute('required', 'required');
+            } else {
+                groupKota.style.display = 'none';
+                groupPos.style.display = 'none';
+            }
+        });
+    }
+
+    // Load bulan saat kota/pos dipilih
+    if (kotaId) {
+        kotaId.addEventListener('change', function() {
+            if (kategoriCetak.value === 'kota' && this.value) {
+                loadAvailableMonths();
+            }
+        });
+    }
+
+    if (posId) {
+        posId.addEventListener('change', function() {
+            if (kategoriCetak.value === 'pos' && this.value) {
+                loadAvailableMonths();
+            }
+        });
+    }
+
+    // Validasi form sebelum submit
+    if (formCetakData) {
+        formCetakData.addEventListener('submit', function(e) {
+            const kategori = kategoriCetak.value;
+            const bulanMulaiVal = bulanMulai.value;
+            const bulanAkhirVal = bulanAkhir.value;
+            
+            // Validasi kategori
+            if (!kategori) {
+                e.preventDefault();
+                alert('Silakan pilih kategori cetak terlebih dahulu!');
+                kategoriCetak.focus();
+                return false;
+            }
+            
+            // Validasi dropdown berdasarkan kategori
+            if (kategori === 'kota' && !kotaId.value) {
+                e.preventDefault();
+                alert('Silakan pilih Kota terlebih dahulu!');
+                kotaId.focus();
+                return false;
+            }
+            
+            if (kategori === 'pos' && !posId.value) {
+                e.preventDefault();
+                alert('Silakan pilih Pos/Stasiun terlebih dahulu!');
+                posId.focus();
+                return false;
+            }
+            
+            // Validasi bulan
+            if (!bulanMulaiVal || !bulanAkhirVal) {
+                e.preventDefault();
+                alert('Silakan pilih Bulan Mulai dan Bulan Akhir!');
+                return false;
+            }
+            
+            // Validasi bulan akhir harus >= bulan mulai
+            if (bulanAkhirVal < bulanMulaiVal) {
+                e.preventDefault();
+                alert('Bulan Akhir harus lebih besar atau sama dengan Bulan Mulai!');
+                bulanAkhir.focus();
+                return false;
+            }
+        });
+    }
+
+    // Reset form saat modal ditutup
+    $('#modalCetakData').on('hidden.bs.modal', function () {
+        formCetakData.reset();
+        groupKota.style.display = 'none';
+        groupPos.style.display = 'none';
+        kotaId.removeAttribute('required');
+        posId.removeAttribute('required');
+        bulanMulai.innerHTML = '<option value="">-- Pilih Bulan Mulai --</option>';
+        bulanAkhir.innerHTML = '<option value="">-- Pilih Bulan Akhir --</option>';
     });
 });
 </script>
