@@ -748,8 +748,8 @@ class ForecastingController extends Controller
         // Hitung NMAE (Normalized Mean Absolute Error)
         // NMAE = (MAE / mean(actual values)) * 100
         $validValues = [];
-        for ($t = $m; $t < $n; $t++) {
-            if (!is_null($values[$t]) && $values[$t] != 0) {
+        for ($t = 0; $t < $n; $t++) {
+            if (!is_null($values[$t])) {
                 $validValues[] = $values[$t];
             }
         }
