@@ -439,16 +439,16 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-3">
-                    <p><strong>MAE (Mean Absolute Error):</strong> {{ number_format($mae, 4) }}</p>
+                    <p><strong>MAE (Mean Absolute Error):</strong> {{ number_format($mae, 2) }}</p>
                 </div>
                 <div class="col-md-3">
-                    <p><strong>RMSE (Root Mean Square Error):</strong> {{ number_format($rmse, 4) }}</p>
+                    <p><strong>RMSE (Root Mean Square Error):</strong> {{ number_format($rmse, 2) }}</p>
                 </div>
                 {{-- <div class="col-md-3">
-                    <p><strong>MAPE (Mean Absolute Percentage Error):</strong> {{ isset($mape) ? number_format($mape, 4) . '%' : '-' }}</p>
+                    <p><strong>MAPE (Mean Absolute Percentage Error):</strong> {{ isset($mape) ? number_format($mape, 2) . '%' : '-' }}</p>
                 </div> --}}
                 <div class="col-md-3">
-                    <p><strong>NMAE (Normalized Mean Absolute Error):</strong> {{ isset($nmae) ? number_format($nmae, 4) . '%' : '-' }}</p>
+                    <p><strong>NMAE (Normalized Mean Absolute Error):</strong> {{ isset($nmae) ? number_format($nmae, 2) . '%' : '-' }}</p>
                 </div>
             </div>
         </div>
