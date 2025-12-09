@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
         label: regency,
         data: months.map(m => {
             const found = data.find(d => d.month === m);
-            return found ? found.avg_rain : 0;
+            return found ? found.avg_rain : null;
         }),
         borderColor: colors[i % colors.length],
         backgroundColor: colors[i % colors.length] + '33',

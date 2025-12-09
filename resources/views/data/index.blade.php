@@ -76,13 +76,16 @@
 {{-- Alert Missing Data (Mengikuti Style Forecasting Index) --}}
 @if(isset($missingDataInfo) && $missingDataInfo['has_gaps'])
     <div class="card shadow mb-4 border-warning">
-        <div class="card-header bg-warning text-dark d-flex align-items-center">
-            <i class="fas fa-exclamation-circle fa-2x mr-3"></i>
-            <div>
-                <h5 class="mb-0 font-weight-bold">Data Tidak Lengkap - Peringatan</h5>
-                <small>Ditemukan data yang hilang dari {{ \Carbon\Carbon::parse($missingDataInfo['start_month'] . '-01')->translatedFormat('F Y') }} sampai {{ \Carbon\Carbon::parse($missingDataInfo['end_month'] . '-01')->translatedFormat('F Y') }}</small>
+        <a href="#collapseMissingData" class="d-block card-header bg-warning text-dark d-flex align-items-center justify-content-between" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseMissingData" style="text-decoration: none;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-circle fa-2x mr-3"></i>
+                <div>
+                    <h5 class="mb-0 font-weight-bold">Data Tidak Lengkap - Peringatan</h5>
+                    <small>Ditemukan data yang hilang dari {{ \Carbon\Carbon::parse($missingDataInfo['start_month'] . '-01')->translatedFormat('F Y') }} sampai {{ \Carbon\Carbon::parse($missingDataInfo['end_month'] . '-01')->translatedFormat('F Y') }}</small>
+                </div>
             </div>
-        </div>
+        </a>
+        <div class="collapse show" id="collapseMissingData">
         <div class="card-body">
             {{-- Statistik Data --}}
             <div class="row mb-4">
@@ -252,6 +255,7 @@
                     <li>Setelah data lengkap, sistem akan otomatis memperbarui status kelengkapan</li>
                 </ol>
             </div>
+        </div>
         </div>
     </div>
 @endif
@@ -425,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function () {
         label,
         data: months.map(m => {
             const found = values.find(v => v.month === m);
-            return found ? found.avg_rain : 0;
+            return found ? found.avg_rain : null;
         }),
         borderColor: `hsl(${i * 45}, 70%, 45%)`,
         backgroundColor: `hsla(${i * 45}, 70%, 45%, 0.15)`,
