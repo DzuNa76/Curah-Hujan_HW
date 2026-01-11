@@ -14,8 +14,8 @@
                             <div class="text-center mb-4">
                                 <!-- Logo/Brand -->
                                 {{-- <img src="/images/logo.png" alt="Logo" style="width:64px;height:64px;margin-bottom:10px;"> --}}
-                                <h1 class="h4 text-primary fw-bold mb-2">Welcome Back!</h1>
-                                <h1 class="h5 text-gray-800">Silahkan Login untuk mengakses sistem peramalan curah hujan</h1>
+                                <h1 class="h4 text-primary fw-bold mb-2">Selamat Datang di Sistem Peramalan Curah Hujan</h1>
+                                <h1 class="h6 text-gray-800">Silahkan Login untuk mengakses sistem</h1>
                             </div>
                             <form class="user" method="POST" action="{{ route('login') }}">
                                 @csrf
