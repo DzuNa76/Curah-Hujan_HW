@@ -115,14 +115,14 @@
     <table>
         <thead>
             <tr>
-                <th>Bulan - Tahun</th>
+                <th>Tahun - Bulan</th>
                 <th>Aktual</th>
                 <th>Level</th>
                 <th>Tren</th>
                 <th>Musiman</th>
                 <th>Peramalan</th>
                 <th>Error</th>
-                <th>Absolut Error</th>
+                <th>Absolut Error (|e|)</th>
             </tr>
         </thead>
         <tbody>

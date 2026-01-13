@@ -501,14 +501,14 @@
                 <table class="table table-bordered table-sm">
                     <thead class="table-light">
                         <tr class="text-center">
-                            <th>Bulan - Tahun</th>
+                            <th>Tahun - Bulan</th>
                             <th>Aktual</th>
                             <th>Level (L)</th>
                             <th>Tren (T)</th>
                             <th>Seasonal (S)</th>
                             <th>Forecast (F)</th>
                             <th>Error (e)</th>
-                            <th>|Error|</th>
+                            <th>Absolut Error (|e|)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -754,7 +754,7 @@
                             title: { display: true, text: 'Curah Hujan (mm)' }
                         },
                         x: { 
-                            title: { display: true, text: 'Bulan - Tahun' },
+                            title: { display: true, text: 'Tahun - Bulan' },
                             ticks: {
                                 callback: function(value, index) {
                                     @if(!empty($missingIndices))
