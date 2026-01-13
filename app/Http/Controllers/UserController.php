@@ -66,8 +66,14 @@ class UserController extends Controller
             'role'  => $request->role,
         ]);
 
-        // password opsional
+        // validasi dan update password opsional
         if ($request->filled('password')) {
+            if ($request->password !== $request->password_confirmation) {
+                return redirect()->back()->withInput()->with('error', 'Password dan konfirmasi password tidak sama');
+            }
+            if (strlen($request->password) < 6) {
+                return redirect()->back()->withInput()->with('error', 'Password minimal 6 karakter');
+            }
             $user->password = Hash::make($request->password);
             $user->save();
         }

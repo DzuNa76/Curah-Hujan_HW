@@ -7,6 +7,27 @@
     <h1 class="h3 mb-2 text-gray-800">Edit User</h1>
     <p class="mb-4">Gunakan form berikut untuk memperbarui data user.</p>
 
+    {{-- Notifikasi sukses/gagal --}}
+    @if(session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger">
+            {{ session('error') }}
+        </div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="card shadow mb-4 col-lg-6">
         <div class="card-header py-3">
             <h6 class="m-0 font-weight-bold text-primary">Form Edit User</h6>
