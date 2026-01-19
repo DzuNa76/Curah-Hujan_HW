@@ -6,7 +6,8 @@ use App\Http\Controllers\{
     DashboardController,
     RainfallDataController,
     UserController,
-    ForecastingController,
+    // ForecastingController,
+    ForecastingMultiplicativeController,
     RegencyController,
     DistrictController,
     VillageController,
@@ -56,10 +57,10 @@ Route::middleware('auth')->group(function () {
 
 
     // 📈 Forecasting
-    Route::get('/forecasting', [ForecastingController::class, 'index'])->name('forecasting.index');
-    Route::post('/forecasting/process', [ForecastingController::class, 'process'])->name('forecasting.process');
-    Route::post('/forecasting/print', [ForecastingController::class, 'print'])->name('forecasting.print');
-    Route::get('/forecasting/available-dates', [ForecastingController::class, 'getAvailableDates'])->name('forecasting.available-dates');
+    Route::get('/forecasting', [ForecastingMultiplicativeController::class, 'index'])->name('forecasting.index');
+    Route::post('/forecasting/process', [ForecastingMultiplicativeController::class, 'process'])->name('forecasting.process');
+    Route::post('/forecasting/print', [ForecastingMultiplicativeController::class, 'print'])->name('forecasting.print');
+    Route::get('/forecasting/available-dates', [ForecastingMultiplicativeController::class, 'getAvailableDates'])->name('forecasting.available-dates');
 
     // =================================================================
     // 🗺️ Master Data Wilayah (Kabupaten, Kecamatan, Desa, Stasiun)
