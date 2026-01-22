@@ -530,6 +530,28 @@ class ForecastingMultiplicativeController extends ForecastingController
                 ->withInput()->with('error', 'Tidak ada data curah hujan pada rentang waktu yang dipilih.');
         }
 
+        ksort($data);
+        $values = array_values($data);
+        $labels = array_keys($data);
+        
+        // Validasi: cek nilai nol atau negatif hanya untuk 1 tahun pertama (12 bulan)
+        // Ini diperlukan untuk inisialisasi komponen multiplicative
+        $m = 12;
+        for ($i = 0; $i < min($m, count($values)); $i++) {
+            if ($values[$i] <= 0) {
+                $periodLabel = isset($labels[$i]) ? Carbon::parse($labels[$i] . '-01')->translatedFormat('F Y') : "periode ke-" . ($i + 1);
+                return redirect()->route('forecasting.index', [
+                    'type' => $type,
+                    'id' => $id
+                ])->withInput()->with(
+                    'error',
+                    "Perhitungan tidak dapat dilakukan karena keterbatasan model. " .
+                    "Data curah hujan bernilai nol atau negatif pada {$periodLabel} (periode ke-" . ($i + 1) . "). " .
+                    "Hindari 1 tahun pertama data curah hujan bernilai 0."
+                );
+            }
+        }
+
         $completenessValidation = $this->validateDataCompleteness($start, $end, $data);
         $stationsDetail = null;
         if (!$completenessValidation['is_complete']) {
@@ -556,11 +578,7 @@ class ForecastingMultiplicativeController extends ForecastingController
                 ->with('stations_detail', $stationsDetail)
                 ->with('error', 'Data tidak lengkap! Proses peramalan dihentikan.');
         }
-
-        ksort($data);
-        $values = array_values($data);
-        $labels = array_keys($data);
-        $m = 12;
+        
         $n = count($values);
         if ($n < 2 * $m) {
             return redirect()->route('forecasting.index', [
@@ -573,80 +591,137 @@ class ForecastingMultiplicativeController extends ForecastingController
         // INISIALISASI KOMPONEN MULTIPLICATIVE
         // Menggunakan 1 tahun pertama (12 bulan)
         // ========================================
+        try {
+            // PERSAMAAN 2.1: Nilai Awal Level
+            // S_L = (1/L) × (X₁ + X₂ + X₃ + ... + X_L)
+            $level0 = 0.0;
+            for ($i = 0; $i < $m; $i++) {
+                $level0 += $values[$i];
+            }
+            $level0 = $level0 / $m;
 
-        // PERSAMAAN 2.1: Nilai Awal Level
-        // S_L = (1/L) × (X₁ + X₂ + X₃ + ... + X_L)
-        $level0 = 0.0;
-        for ($i = 0; $i < $m; $i++) {
-            $level0 += $values[$i];
-        }
-        $level0 = $level0 / $m;
+            // PERSAMAAN 2.2: Nilai Awal Trend
+            // T_L = (1/L) × [(X_{L+1} - X₁)/L + (X_{L+2} - X₂)/L + ... + (X_{2L} - X_L)/L]
+            $trend_sum = 0.0;
+            for ($i = 0; $i < $m; $i++) {
+                $trend_sum += ($values[$m + $i] - $values[$i]) / $m;
+            }
+            $trend0 = $trend_sum / $m;
 
-        // PERSAMAAN 2.2: Nilai Awal Trend
-        // T_L = (1/L) × [(X_{L+1} - X₁)/L + (X_{L+2} - X₂)/L + ... + (X_{2L} - X_L)/L]
-        $trend_sum = 0.0;
-        for ($i = 0; $i < $m; $i++) {
-            $trend_sum += ($values[$m + $i] - $values[$i]) / $m;
-        }
-        $trend0 = $trend_sum / $m;
+            // PERSAMAAN 2.4: Nilai Awal Musiman (Multiplicative)
+            // I_t = X_t / S_L, untuk t = 1, 2, ..., L
+            $S = array_fill(0, $m, 1.0);
+            for ($i = 0; $i < $m; $i++) {
+                $S[$i] = $values[$i] / $level0;
+            }
 
-        // PERSAMAAN 2.4: Nilai Awal Musiman (Multiplicative)
-        // I_t = X_t / S_L, untuk t = 1, 2, ..., L
-        $S = array_fill(0, $m, 1.0);
-        for ($i = 0; $i < $m; $i++) {
-            $S[$i] = $values[$i] / $level0;
-        }
+            // Normalisasi agar rata-rata faktor musiman = 1 (untuk multiplicative)
+            $S_sum = array_sum($S);
+            for ($i = 0; $i < $m; $i++) {
+                $S[$i] = $S[$i] / ($S_sum / $m);
+            }
 
-        // Normalisasi agar rata-rata faktor musiman = 1 (untuk multiplicative)
-        $S_sum = array_sum($S);
-        for ($i = 0; $i < $m; $i++) {
-            $S[$i] = $S[$i] / ($S_sum / $m);
-        }
+            // Pencegahan: cek jika seasonal menghasilkan 0 setelah inisialisasi
+            for ($i = 0; $i < $m; $i++) {
+                if ($S[$i] == 0) {
+                    $periodLabel = isset($labels[$i]) ? Carbon::parse($labels[$i] . '-01')->translatedFormat('F Y') : "periode ke-" . ($i + 1);
+                    return redirect()->route('forecasting.index', [
+                        'type' => $type,
+                        'id' => $id
+                    ])->withInput()->with(
+                        'error',
+                        "Perhitungan tidak dapat dilanjutkan karena faktor musiman (seasonal) menghasilkan nilai nol pada inisialisasi untuk {$periodLabel} (periode ke-" . ($i + 1) . "). " .
+                        "Ini terjadi karena keterbatasan model Holt-Winters Multiplicative yang tidak dapat memproses faktor musiman bernilai nol."
+                    );
+                }
+            }
 
-        // ========================================
-        // SMOOTHING MULTIPLICATIVE
-        // ========================================
-        $L = array_fill(0, $n + 12, null);
-        $T = array_fill(0, $n + 12, null);
-        $F = array_fill(0, $n + 12, null);
-        $errors = array_fill(0, $n + 12, null);
-        $S_values = array_fill(0, $n + 12, null);
+            // ========================================
+            // SMOOTHING MULTIPLICATIVE
+            // ========================================
+            $L = array_fill(0, $n + 12, null);
+            $T = array_fill(0, $n + 12, null);
+            $F = array_fill(0, $n + 12, null);
+            $errors = array_fill(0, $n + 12, null);
+            $S_values = array_fill(0, $n + 12, null);
 
-        // Set nilai awal untuk periode 0 sampai m-1
-        for ($t = 0; $t < $m; $t++) {
-            $L[$t] = $level0;
-            $T[$t] = $trend0;
-            $S_values[$t] = $S[$t % $m];
-        }
+            // Set nilai awal untuk periode 0 sampai m-1
+            for ($t = 0; $t < $m; $t++) {
+                $L[$t] = $level0;
+                $T[$t] = $trend0;
+                $S_values[$t] = $S[$t % $m];
+            }
 
-        // Iterasi smoothing mulai dari t = m
-        for ($t = $m; $t < $n; $t++) {
-            $s_idx = $t % $m;
+            // Iterasi smoothing mulai dari t = m
+            for ($t = $m; $t < $n; $t++) {
+                $s_idx = $t % $m;
 
-            // Forecast (one-step ahead)
-            $F[$t] = ($L[$t - 1] + $T[$t - 1]) * $S[$s_idx];
+                // Forecast (one-step ahead)
+                $F[$t] = ($L[$t - 1] + $T[$t - 1]) * $S[$s_idx];
 
-            // Error
-            $errors[$t] = $values[$t] - $F[$t];
+                // Error
+                $errors[$t] = $values[$t] - $F[$t];
 
-            // Simpan nilai seasonal lama (I_{t-L})
-            $S_old = $S[$s_idx];
+                // Simpan nilai seasonal lama (I_{t-L})
+                $S_old = $S[$s_idx];
 
-            // PERSAMAAN 2.9: Update Level (Multiplicative)
-            // S_t = α(X_t / I_{t-L}) + (1 - α)(S_{t-1} + T_{t-1})
-            if ($S_old == 0) $S_old = 1e-10; // Prevent division by zero
-            $L[$t] = $alpha * ($values[$t] / $S_old) + (1 - $alpha) * ($L[$t - 1] + $T[$t - 1]);
+                // Pencegahan: cek jika seasonal lama bernilai 0
+                if ($S_old == 0) {
+                    $periodLabel = isset($labels[$t]) ? Carbon::parse($labels[$t] . '-01')->translatedFormat('F Y') : "periode ke-" . ($t + 1);
+                    return redirect()->route('forecasting.index', [
+                        'type' => $type,
+                        'id' => $id
+                    ])->withInput()->with(
+                        'error',
+                        "Perhitungan tidak dapat dilanjutkan karena faktor musiman (seasonal) bernilai nol pada {$periodLabel} (periode ke-" . ($t + 1) . "). " .
+                        "Ini terjadi karena keterbatasan model Holt-Winters Multiplicative yang tidak dapat memproses faktor musiman bernilai nol."
+                    );
+                }
 
-            // PERSAMAAN 2.10: Update Trend
-            // T_t = β(S_t - S_{t-1}) + (1 - β)T_{t-1}
-            $T[$t] = $beta * ($L[$t] - $L[$t - 1]) + (1 - $beta) * $T[$t - 1];
+                // PERSAMAAN 2.9: Update Level (Multiplicative)
+                // S_t = α(X_t / I_{t-L}) + (1 - α)(S_{t-1} + T_{t-1})
+                $L[$t] = $alpha * ($values[$t] / $S_old) + (1 - $alpha) * ($L[$t - 1] + $T[$t - 1]);
 
-            // PERSAMAAN 2.11: Update Musiman (Multiplicative)
-            // I_t = γ(X_t / S_t) + (1 - γ)I_{t-L}
-            if ($L[$t] == 0) $L[$t] = 1e-10; // Prevent division by zero
-            $S[$s_idx] = $gamma * ($values[$t] / $L[$t]) + (1 - $gamma) * $S_old;
+                // PERSAMAAN 2.10: Update Trend
+                // T_t = β(S_t - S_{t-1}) + (1 - β)T_{t-1}
+                $T[$t] = $beta * ($L[$t] - $L[$t - 1]) + (1 - $beta) * $T[$t - 1];
 
-            $S_values[$t] = $S[$s_idx];
+                // PERSAMAAN 2.11: Update Musiman (Multiplicative)
+                // I_t = γ(X_t / S_t) + (1 - γ)I_{t-L}
+                $S[$s_idx] = $gamma * ($values[$t] / $L[$t]) + (1 - $gamma) * $S_old;
+
+                // Pencegahan: cek jika seasonal menghasilkan 0
+                if ($S[$s_idx] == 0) {
+                    $periodLabel = isset($labels[$t]) ? Carbon::parse($labels[$t] . '-01')->translatedFormat('F Y') : "periode ke-" . ($t + 1);
+                    return redirect()->route('forecasting.index', [
+                        'type' => $type,
+                        'id' => $id
+                    ])->withInput()->with(
+                        'error',
+                        "Perhitungan tidak dapat dilanjutkan karena faktor musiman (seasonal) menghasilkan nilai nol pada {$periodLabel} (periode ke-" . ($t + 1) . "). " .
+                        "Ini terjadi karena keterbatasan model Holt-Winters Multiplicative yang tidak dapat memproses faktor musiman bernilai nol."
+                    );
+                }
+
+                $S_values[$t] = $S[$s_idx];
+            }
+        } catch (\DivisionByZeroError $e) {
+            return redirect()->route('forecasting.index', [
+                'type' => $type,
+                'id' => $id
+            ])->withInput()->with(
+                'error',
+                "Terjadi kesalahan dalam perhitungan: Pembagian dengan nol. " . 
+                "Pastikan data curah hujan tidak mengandung nilai nol atau nilai yang menyebabkan pembagian dengan nol."
+            );
+        } catch (\Exception $e) {
+            return redirect()->route('forecasting.index', [
+                'type' => $type,
+                'id' => $id
+            ])->withInput()->with(
+                'error',
+                "Terjadi kesalahan dalam perhitungan: " . $e->getMessage()
+            );
         }
 
         // ========================================

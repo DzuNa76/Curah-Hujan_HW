@@ -3,7 +3,7 @@
 @section('title', 'Peramalan Curah Hujan')
 
 @section('content')
-<h1 class="h3 mb-3 text-gray-800">Peramalan Curah Hujan (Holt–Winters Additive)</h1>
+<h1 class="h3 mb-3 text-gray-800">Peramalan Curah Hujan (Holt–Winters Multiplicative)</h1>
 <p class="mb-4">Pilih parameter dan rentang data untuk melakukan peramalan curah hujan bulanan.</p>
 
 {{-- Form Parameter --}}

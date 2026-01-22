@@ -67,7 +67,7 @@
     {{-- Header --}}
     <div class="header">
         <h2>LAPORAN PERAMALAN CURAH HUJAN</h2>
-        <p>Metode Holt–Winters Additive</p>
+        <p>Metode Holt–Winters Multiplicative</p>
     </div>
 
     {{-- Informasi Umum --}}
